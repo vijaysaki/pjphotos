@@ -1,1 +1,344 @@
-Coming Soon!
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PJ Wilkinson Photography</title>
+  <meta name="description" content="PJ Wilkinson Photography — modern, timeless portraits, weddings, and events." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- HEADER -->
+  <header class="header" id="top">
+    <div class="container header__inner">
+      <a class="brand" href="#home" aria-label="PJ Wilkinson Photography home">
+        <span class="brand__mark" aria-hidden="true">
+          <!-- Simple camera mark (SVG) -->
+          <svg width="34" height="26" viewBox="0 0 34 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 6.5l2-3h6l1.5 2h8c1.93 0 3.5 1.57 3.5 3.5v10c0 1.93-1.57 3.5-3.5 3.5H6.5C4.57 22.5 3 20.93 3 19V10c0-1.93 1.57-3.5 3.5-3.5H7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="17" cy="14" r="5" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </span>
+        <span class="brand__text">
+          <span class="brand__name">PJ Wilkinson</span>
+          <span class="brand__sub">Photography</span>
+        </span>
+      </a>
+
+      <nav class="nav" aria-label="Primary navigation">
+        <button class="nav__toggle" type="button" aria-expanded="false" aria-controls="navMenu">
+          <span class="nav__toggleBars" aria-hidden="true"></span>
+          <span class="sr-only">Open menu</span>
+        </button>
+
+        <div class="nav__menu" id="navMenu">
+          <a class="nav__link" href="#home">Home</a>
+          <a class="nav__link" href="#services">Services</a>
+          <a class="nav__link" href="#book">Book Now</a>
+          <a class="nav__link" href="#gallery">Gallery</a>
+          <a class="nav__link" href="#buy">Buy Photos</a>
+          <a class="nav__link" href="#about">About</a>
+          <a class="nav__link" href="#contact">Contact</a>
+          <a class="btn btn--primary nav__cta" href="#book">Book Now</a>
+        </div>
+      </nav>
+
+      <a class="btn btn--primary header__cta" href="#book">Book Now</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- HERO -->
+    <section class="hero" id="home" aria-label="Hero">
+      <div class="hero__bg" role="img" aria-label="Featured photo placeholder"></div>
+
+      <div class="container hero__content">
+        <div class="hero__card">
+          <p class="eyebrow">Portraits • Weddings • Events</p>
+          <h1 class="hero__title">Natural, timeless photography.</h1>
+          <p class="hero__lead">Clean, modern storytelling that keeps the focus where it belongs — on the moments.</p>
+          <div class="hero__actions">
+            <a class="btn btn--primary" href="#book">Book Now</a>
+            <a class="btn btn--ghost" href="#gallery">View Gallery</a>
+          </div>
+          <div class="hero__meta">
+            <span class="pill">Lexington, KY</span>
+            <span class="pill">Fast turnaround</span>
+            <span class="pill">Prints + downloads</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVICES -->
+    <section class="section" id="services">
+      <div class="container">
+        <div class="section__head">
+          <h2 class="section__title">Services</h2>
+          <p class="section__subtitle">A simple, modern experience from booking to delivery.</p>
+        </div>
+
+        <div class="grid cards">
+          <article class="card">
+            <div class="card__media media--portraits" aria-hidden="true"></div>
+            <h3 class="card__title">Portraits</h3>
+            <p class="card__text">Senior, branding, headshots — confident, relaxed, and natural.</p>
+            <a class="card__link" href="#book">Book a portrait →</a>
+          </article>
+
+          <article class="card">
+            <div class="card__media media--weddings" aria-hidden="true"></div>
+            <h3 class="card__title">Weddings</h3>
+            <p class="card__text">Documentary moments + editorial polish. Packages that scale.</p>
+            <a class="card__link" href="#book">Inquire about weddings →</a>
+          </article>
+
+          <article class="card">
+            <div class="card__media media--events" aria-hidden="true"></div>
+            <h3 class="card__title">Events</h3>
+            <p class="card__text">Corporate, community, private events — coverage you can count on.</p>
+            <a class="card__link" href="#book">Schedule coverage →</a>
+          </article>
+
+          <article class="card">
+            <div class="card__media media--families" aria-hidden="true"></div>
+            <h3 class="card__title">Families</h3>
+            <p class="card__text">Genuine connection, warm light, and a smooth session flow.</p>
+            <a class="card__link" href="#book">Book a family session →</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- GALLERY -->
+    <section class="section section--alt" id="gallery">
+      <div class="container">
+        <div class="section__head section__head--split">
+          <div>
+            <h2 class="section__title">Gallery</h2>
+            <p class="section__subtitle">A quick look at recent work. Click any tile to open a lightbox.</p>
+          </div>
+          <div class="filters" role="tablist" aria-label="Gallery filters">
+            <button class="chip is-active" type="button" data-filter="all" role="tab" aria-selected="true">All</button>
+            <button class="chip" type="button" data-filter="portraits" role="tab" aria-selected="false">Portraits</button>
+            <button class="chip" type="button" data-filter="weddings" role="tab" aria-selected="false">Weddings</button>
+            <button class="chip" type="button" data-filter="events" role="tab" aria-selected="false">Events</button>
+            <button class="chip" type="button" data-filter="families" role="tab" aria-selected="false">Families</button>
+          </div>
+        </div>
+
+        <div class="masonry" id="masonry">
+          <!-- 12 modern placeholders (you can replace with real images) -->
+          <button class="tile" data-cat="weddings" data-title="Golden hour wedding" type="button" aria-label="Open photo: Golden hour wedding"></button>
+          <button class="tile" data-cat="portraits" data-title="Studio portrait" type="button" aria-label="Open photo: Studio portrait"></button>
+          <button class="tile" data-cat="events" data-title="Event candids" type="button" aria-label="Open photo: Event candids"></button>
+          <button class="tile" data-cat="families" data-title="Family session" type="button" aria-label="Open photo: Family session"></button>
+          <button class="tile" data-cat="portraits" data-title="Branding session" type="button" aria-label="Open photo: Branding session"></button>
+          <button class="tile" data-cat="weddings" data-title="Details & rings" type="button" aria-label="Open photo: Details & rings"></button>
+          <button class="tile" data-cat="events" data-title="Stage moments" type="button" aria-label="Open photo: Stage moments"></button>
+          <button class="tile" data-cat="families" data-title="Playful candids" type="button" aria-label="Open photo: Playful candids"></button>
+          <button class="tile" data-cat="weddings" data-title="First dance" type="button" aria-label="Open photo: First dance"></button>
+          <button class="tile" data-cat="portraits" data-title="Outdoor portrait" type="button" aria-label="Open photo: Outdoor portrait"></button>
+          <button class="tile" data-cat="events" data-title="Reception energy" type="button" aria-label="Open photo: Reception energy"></button>
+          <button class="tile" data-cat="families" data-title="Soft light family" type="button" aria-label="Open photo: Soft light family"></button>
+        </div>
+
+        <div class="section__foot">
+          <a class="btn btn--ghost" href="#contact">Request a full portfolio</a>
+          <a class="btn btn--primary" href="#book">Book Now</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- BUY PHOTOS -->
+    <section class="section section--dark" id="buy" aria-label="Buy photos">
+      <div class="container buy">
+        <div class="buy__text">
+          <h2 class="section__title section__title--light">Buy prints & digital photos</h2>
+          <p class="section__subtitle section__subtitle--light">
+            Enter your gallery access code to view, download, and order prints. (Hook this up to your store later.)
+          </p>
+
+          <form class="buy__form" onsubmit="return false" aria-label="Access code form">
+            <label class="sr-only" for="accessCode">Access code</label>
+            <input id="accessCode" class="input" type="text" placeholder="Enter access code (e.g., PJ-1234)" />
+            <button class="btn btn--accent" type="button" id="accessBtn">Unlock</button>
+          </form>
+
+          <p class="buy__hint">Tip: Replace this with Pic-Time, ShootProof, SmugMug, or your preferred store embed.</p>
+        </div>
+
+        <div class="buy__panel" aria-label="Featured products">
+          <div class="buy__panelInner">
+            <h3 class="buy__panelTitle">Popular options</h3>
+            <ul class="buy__list">
+              <li><span>Digital downloads</span><span>Instant</span></li>
+              <li><span>Prints (4×6, 5×7, 8×10)</span><span>Ships</span></li>
+              <li><span>Canvas + wall art</span><span>Ships</span></li>
+              <li><span>Albums</span><span>Ships</span></li>
+            </ul>
+            <a class="btn btn--ghostLight" href="#contact">Questions? Contact</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="section" id="about">
+      <div class="container about">
+        <div class="about__media" role="img" aria-label="Photographer portrait placeholder"></div>
+        <div class="about__text">
+          <h2 class="section__title">About PJ</h2>
+          <p class="section__subtitle">
+            A calm, efficient process with modern editing and timeless composition.
+          </p>
+          <p class="body">
+            Replace this with your real bio. Mention your style, what clients can expect, and what you specialize in.
+            Keep it short — the work should do most of the talking.
+          </p>
+          <ul class="checks">
+            <li>Clear pricing & packages</li>
+            <li>Guided posing (no awkwardness)</li>
+            <li>Online gallery delivery</li>
+          </ul>
+          <a class="btn btn--primary" href="#contact">Let’s talk</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- BOOK NOW -->
+    <section class="section section--alt" id="book">
+      <div class="container book">
+        <div class="section__head">
+          <h2 class="section__title">Book now</h2>
+          <p class="section__subtitle">Send a quick request — you can replace this with a scheduler embed later.</p>
+        </div>
+
+        <div class="book__grid">
+          <form class="form" id="bookingForm" aria-label="Booking form">
+            <div class="form__row">
+              <div class="field">
+                <label for="name">Name</label>
+                <input class="input input--light" id="name" name="name" type="text" autocomplete="name" required />
+              </div>
+              <div class="field">
+                <label for="email">Email</label>
+                <input class="input input--light" id="email" name="email" type="email" autocomplete="email" required />
+              </div>
+            </div>
+
+            <div class="form__row">
+              <div class="field">
+                <label for="service">Service</label>
+                <select class="input input--light" id="service" name="service" required>
+                  <option value="">Select…</option>
+                  <option>Portraits</option>
+                  <option>Weddings</option>
+                  <option>Events</option>
+                  <option>Families</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="date">Preferred date</label>
+                <input class="input input--light" id="date" name="date" type="date" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="message">Details</label>
+              <textarea class="input input--light" id="message" name="message" rows="5" placeholder="Location, time window, vibe, must-have shots…"></textarea>
+            </div>
+
+            <div class="form__actions">
+              <button class="btn btn--primary" type="submit">Send request</button>
+              <p class="form__note" id="formNote" role="status" aria-live="polite"></p>
+            </div>
+          </form>
+
+          <aside class="book__aside" aria-label="Booking info">
+            <div class="infoCard">
+              <h3>What happens next</h3>
+              <ol class="steps">
+                <li>We confirm availability within 24–48 hours.</li>
+                <li>You receive a simple contract + deposit link.</li>
+                <li>We plan the session (location, timing, style).</li>
+              </ol>
+            </div>
+
+            <div class="infoCard infoCard--accent">
+              <h3>Prefer texting?</h3>
+              <p>Call/text: <a href="tel:18594901165">859.490.1165</a></p>
+              <p>Email: <a href="mailto:patrick@pjphotos.com">patrick@pjphotos.com</a></p>
+              <p>Instagram: <a href="#" aria-label="Instagram profile">@pjwilkinsonphotography</a></p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="section" id="contact">
+      <div class="container contact">
+        <div class="section__head">
+          <h2 class="section__title">Contact</h2>
+          <p class="section__subtitle">Quick questions, custom quotes, or availability checks.</p>
+        </div>
+
+        <div class="contact__grid">
+          <div class="contact__card">
+            <h3>Direct</h3>
+            <p><strong>Email:</strong> <a href="mailto:patrick@pjphotos.com">patrick@pjphotos.com</a></p>
+            <p><strong>Phone:</strong> <a href="tel:18594901165">859.490.1165</a></p>
+            <p><strong>Instagram:</strong> <a href="#" aria-label="Instagram profile">@pjwilkinsonphotography</a></p>
+          </div>
+
+          <div class="contact__card">
+            <h3>Studio notes</h3>
+            <ul class="checks checks--compact">
+              <li>Weekday + weekend sessions</li>
+              <li>Travel available</li>
+              <li>Prints & downloads offered</li>
+            </ul>
+            <a class="btn btn--ghost" href="#book">Start a booking →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <span class="footer__name">PJ Wilkinson Photography</span>
+        <span class="footer__small">© <span id="year"></span> All rights reserved.</span>
+      </div>
+      <div class="footer__links">
+        <a href="#home">Home</a>
+        <a href="#services">Services</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#buy">Buy Photos</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <div class="lightbox__backdrop" data-close="1"></div>
+    <div class="lightbox__dialog" role="dialog" aria-modal="true" aria-label="Image preview">
+      <button class="lightbox__close" type="button" data-close="1" aria-label="Close">×</button>
+      <div class="lightbox__image" id="lightboxImage" role="img" aria-label=""></div>
+      <div class="lightbox__caption" id="lightboxCaption"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

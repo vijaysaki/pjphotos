@@ -9,12 +9,11 @@ Static site with content loaded from AdeptLogics backend API.
    cd ../adeptlogics/backend && npm run start:dev
    ```
 
-2. **Add a tenant for localhost** (Super Admin or DB):
-   - Create tenant with domain `localhost`
-   - Enable modules: Services, Contact Forms, Webpages (for menu)
-   - Create a contact form with slug `contact` (or `booking`)
-   - Add services (Portraits, Weddings, etc.)
-   - Create a header menu with items
+2. **Add a tenant** (Super Admin or DB):
+   - Create tenant with domain `localhost` (or use `tenantId` in config.js)
+   - Enable modules: Services, Contact Forms, Webpages, **Galleries**
+   - Create a contact form with slug `contact`
+   - Add services, create a header menu, and create gallery folders with images
 
 3. **Serve pjphotos** (must use HTTP, not `file://`):
    ```bash
@@ -25,11 +24,14 @@ Static site with content loaded from AdeptLogics backend API.
 
 4. **Open** http://localhost:5000 in the browser.
 
+The nav **Gallery** item shows a dropdown with the full folder hierarchy. Click a folder to jump directly to that gallery.
+
 ## Config
 
-On `<body>`:
-- `data-api-base` — API URL (default: `http://localhost:3000` for local)
-- `data-domain` — tenant domain (default: `localhost` for local)
-- `data-contact-form-slug` — contact form slug for booking (default: `contact`)
+Edit `config.js` — single place for API, tenant, and contact form settings:
+- `apiBase` — API URL
+- `domain` — tenant domain
+- `tenantId` — tenant UUID (used when domain doesn’t match, e.g. local dev)
+- `contactFormSlug` — contact form slug for booking
 
-For production, set `data-api-base="https://api.adeptlogics.com"` and `data-domain="yourdomain.com"`.
+For local dev, set `apiBase: "http://localhost:3000"` in `config.js`.

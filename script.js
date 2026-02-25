@@ -3,10 +3,11 @@
   const qs = (s, el = document) => el.querySelector(s);
   const qsa = (s, el = document) => Array.from(el.querySelectorAll(s));
 
-  // Config: override via data attributes
-  const API_BASE = (document.body.dataset.apiBase || "https://api.adeptlogics.com").replace(/\/$/, "");
-  const DOMAIN = document.body.dataset.domain || window.location.hostname || "localhost";
-  const TENANT_ID = document.body.dataset.tenantId || "";
+  // Config: from config.js or data attributes
+  const cfg = window.PJPHOTOS_CONFIG || {};
+  const API_BASE = (cfg.apiBase || document.body.dataset.apiBase || "https://api.adeptlogics.com").replace(/\/$/, "");
+  const DOMAIN = cfg.domain || document.body.dataset.domain || window.location.hostname || "localhost";
+  const TENANT_ID = cfg.tenantId || document.body.dataset.tenantId || "";
 
   const api = (path) => {
     const sep = path.includes("?") ? "&" : "?";
@@ -95,41 +96,91 @@
     }
   });
 
-  // --- Load menu from /public/pages/menus (page links use #/slug for same layout) ---
+  // --- Build nested gallery dropdown HTML (recursive) ---
+  const renderGalleryDropdown = (tree) => {
+    if (!Array.isArray(tree) || !tree.length) return "";
+    const renderFolder = (f) => {
+      const name = (f.name || "Folder").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+      const link = `<a href="#gallery/${f.id}" class="nav__dropdown__link">${name}</a>`;
+      if (f.children?.length) {
+        const sub = f.children.map(renderFolder).join("");
+        return `<div class="nav__dropdown__item nav__dropdown__item--has-sub"><a href="#gallery/${f.id}" class="nav__dropdown__link nav__dropdown__parent">${name}</a><div class="nav__dropdown__sub">${sub}</div></div>`;
+      }
+      return `<div class="nav__dropdown__item">${link}</div>`;
+    };
+    const items = tree.map(renderFolder).join("");
+    return `<div class="nav__dropdown" id="navGalleryDropdown"><a href="#gallery" class="nav__dropdown__link nav__dropdown__link--all">All Galleries</a>${items}</div>`;
+  };
+
+  // --- Load menu + gallery tree, inject Gallery dropdown ---
   const dynamicMenu = qs("#dynamicMenu");
-  if (dynamicMenu) {
-    fetch(api("/public/pages/menus"))
-      .then((res) => (res.ok ? res.json() : Promise.reject("Menu fetch failed")))
-      .then((menus) => {
-        const headerMenu = Array.isArray(menus) && menus.length ? menus.find((m) => (m.slug || m.name || "").toLowerCase() === "header") || menus[0] : null;
-        const items = (headerMenu?.items || [])
-          .filter((i) => i.visible !== false)
-          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-        if (items.length) {
-          dynamicMenu.innerHTML = items
-            .map((item) => {
-              let href = item.external_url || "#";
-              if (item.page && (item.page.slug || item.page.full_path)) {
-                const slug = (item.page.slug || item.page.full_path).replace(/^\//, "");
-                href = "#/" + slug;
-              } else if (!item.external_url && item.label) {
-                const l = (item.label || "").toLowerCase();
-                if (l.includes("book")) href = "#book";
-                else if (l.includes("home")) href = "#";
-                else if (l.includes("gallery")) href = "#gallery";
-                else if (l.includes("buy")) href = "#buy";
-                else if (l.includes("services")) href = "#/services";
-                else if (l.includes("about")) href = "#/about";
-                else if (l.includes("contact")) href = "#/contact";
-              }
-              const isCta = (item.label || "").toLowerCase().includes("book");
-              return `<a class="${isCta ? "btn btn--primary nav__cta" : "nav__link"}" href="${href}">${item.label || "Link"}</a>`;
-            })
-            .join("");
-        } else {
-          throw new Error("No menu items");
+  let galleryTreeForNav = [];
+  const buildMenuHtml = (items, tree) => {
+    const defaultItems = [
+      { label: "Home", href: "#" },
+      { label: "Services", href: "#/services" },
+      { label: "Gallery", href: "#gallery", isGallery: true },
+      { label: "Buy Photos", href: "#buy" },
+      { label: "About", href: "#/about" },
+      { label: "Contact", href: "#/contact" },
+      { label: "Book Now", href: "#book", isCta: true },
+    ];
+    const list = (items && items.length) ? items : defaultItems;
+    return list
+      .filter((i) => i.visible !== false)
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      .map((item) => {
+        const l = (item.label || "").toLowerCase();
+        const isGallery = l.includes("gallery") || item.isGallery;
+        if (isGallery && Array.isArray(tree) && tree.length) {
+          const dropdown = renderGalleryDropdown(tree);
+          return `<div class="nav__item nav__item--dropdown"><a href="#gallery" class="nav__link nav__link--dropdown" aria-expanded="false" aria-haspopup="true">${item.label || "Gallery"} ▾</a>${dropdown}</div>`;
         }
-        qsa(".nav__link, .nav__cta", dynamicMenu).forEach((a) =>
+        let href = item.href || item.external_url || "#";
+        if (!href.startsWith("#") && !href.startsWith("http")) href = "#" + href;
+        if (item.page && (item.page.slug || item.page.full_path)) {
+          const slug = (item.page.slug || item.page.full_path).replace(/^\//, "");
+          href = "#/" + slug;
+        } else if (!item.external_url && item.label && !href) {
+          if (l.includes("book")) href = "#book";
+          else if (l.includes("home")) href = "#";
+          else if (l.includes("gallery")) href = "#gallery";
+          else if (l.includes("buy")) href = "#buy";
+          else if (l.includes("services")) href = "#/services";
+          else if (l.includes("about")) href = "#/about";
+          else if (l.includes("contact")) href = "#/contact";
+        }
+        const isCta = l.includes("book") || item.isCta;
+        return `<a class="${isCta ? "btn btn--primary nav__cta" : "nav__link"}" href="${href}">${item.label || "Link"}</a>`;
+      })
+      .join("");
+  };
+
+  if (dynamicMenu) {
+    Promise.all([
+      fetch(api("/public/pages/menus")).then((r) => (r.ok ? r.json() : [])),
+      fetch(api("/public/galleries/tree")).then((r) => (r.ok ? r.json() : [])),
+    ])
+      .then(([menus, tree]) => {
+        galleryTreeForNav = Array.isArray(tree) ? tree : [];
+        const headerMenu = Array.isArray(menus) && menus.length ? menus.find((m) => (m.slug || m.name || "").toLowerCase() === "header") || menus[0] : null;
+        const items = (headerMenu?.items || []).map((i) => {
+          let href = i.external_url || "#";
+          if (i.page && (i.page.slug || i.page.full_path)) href = "#/" + (i.page.slug || i.page.full_path).replace(/^\//, "");
+          else if (!i.external_url && i.label) {
+            const ll = (i.label || "").toLowerCase();
+            if (ll.includes("book")) href = "#book";
+            else if (ll.includes("home")) href = "#";
+            else if (ll.includes("gallery")) href = "#gallery";
+            else if (ll.includes("buy")) href = "#buy";
+            else if (ll.includes("services")) href = "#/services";
+            else if (ll.includes("about")) href = "#/about";
+            else if (ll.includes("contact")) href = "#/contact";
+          }
+          return { ...i, href };
+        });
+        dynamicMenu.innerHTML = buildMenuHtml(items, galleryTreeForNav);
+        qsa(".nav__link, .nav__cta, .nav__dropdown__link", dynamicMenu).forEach((a) =>
           a.addEventListener("click", () => {
             const menu = qs("#navMenu");
             const toggle = qs(".nav__toggle");
@@ -137,20 +188,28 @@
               menu.classList.remove("is-open");
               toggle.setAttribute("aria-expanded", "false");
             }
+            qsa(".nav__item--dropdown", dynamicMenu).forEach((d) => d.classList.remove("is-open"));
           })
         );
+        qsa(".nav__item--dropdown", dynamicMenu).forEach((item) => {
+          const trigger = qs(".nav__link--dropdown", item);
+          if (trigger) {
+            trigger.addEventListener("click", (e) => {
+              e.preventDefault();
+              item.classList.toggle("is-open");
+              trigger.setAttribute("aria-expanded", item.classList.contains("is-open"));
+            });
+            item.addEventListener("mouseenter", () => {
+              if (window.innerWidth >= 900) item.classList.add("is-open");
+            });
+            item.addEventListener("mouseleave", () => {
+              if (window.innerWidth >= 900) item.classList.remove("is-open");
+            });
+          }
+        });
       })
       .catch(() => {
-        dynamicMenu.innerHTML = `
-          <a class="nav__link" href="#">Home</a>
-          <a class="nav__link" href="#/services">Services</a>
-          <a class="nav__link" href="#book">Book Now</a>
-          <a class="nav__link" href="#gallery">Gallery</a>
-          <a class="nav__link" href="#buy">Buy Photos</a>
-          <a class="nav__link" href="#/about">About</a>
-          <a class="nav__link" href="#/contact">Contact</a>
-          <a class="btn btn--primary nav__cta" href="#book">Book Now</a>
-        `;
+        dynamicMenu.innerHTML = buildMenuHtml(null, []);
       });
   }
 
@@ -255,6 +314,36 @@
     return null;
   };
 
+  const findPathToFolder = (tree, id, path = []) => {
+    for (const f of tree) {
+      if (f.id === id) return [...path, { id: f.id, name: f.name || "Folder" }];
+      if (f.children?.length) {
+        const found = findPathToFolder(f.children, id, [...path, { id: f.id, name: f.name || "Folder" }]);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const syncGalleryFromHash = () => {
+    const hash = (window.location.hash || "").replace(/^#/, "");
+    const match = hash.match(/^gallery(?:\/([a-f0-9-]+))?/i);
+    if (!match) return;
+    const folderId = match[1] || null;
+    if (galleryTree.length) {
+      if (folderId) {
+        const path = findPathToFolder(galleryTree, folderId);
+        galleryPath = path ? path.slice(0, -1) : [];
+        renderGallery(folderId);
+      } else {
+        galleryPath = [];
+        renderGallery(null);
+      }
+      const el = qs("#gallery");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   const renderGallery = (folderId = null) => {
     const current = folderId ? findFolderById(galleryTree, folderId) : null;
     const children = current ? (current.children || []) : galleryTree;
@@ -308,7 +397,13 @@
     .then((res) => (res.ok ? res.json() : []))
     .then((tree) => {
       galleryTree = Array.isArray(tree) ? tree : [];
-      renderGallery();
+      const hash = (window.location.hash || "").replace(/^#/, "");
+      if (!hash.match(/^gallery/)) renderGallery();
+      else syncGalleryFromHash();
+      window.addEventListener("hashchange", () => {
+        const h = (window.location.hash || "").replace(/^#/, "");
+        if (h.match(/^gallery/)) syncGalleryFromHash();
+      });
       document.body.addEventListener("click", (e) => {
         const folderBtn = e.target.closest("[data-gallery-id]");
         if (folderBtn) {
@@ -316,6 +411,7 @@
           const id = folderBtn.getAttribute("data-gallery-id");
           const name = folderBtn.querySelector(".gallery__folderName")?.textContent || "Folder";
           galleryPath = [...galleryPath, { id, name }];
+          window.location.hash = "#gallery/" + id;
           renderGallery(id);
         }
         const backBtn = e.target.closest("[data-gallery-back]");
@@ -324,12 +420,15 @@
           const backId = backBtn.getAttribute("data-gallery-back");
           if (backId === "root") {
             galleryPath = [];
+            window.location.hash = "#gallery";
             renderGallery(null);
             return;
           }
           const idx = galleryPath.findIndex((p) => p.id === backId);
           galleryPath = idx >= 0 ? galleryPath.slice(0, idx) : [];
-          renderGallery(idx > 0 ? galleryPath[idx - 1]?.id : null);
+          const targetId = idx > 0 ? galleryPath[idx - 1]?.id : null;
+          window.location.hash = targetId ? "#gallery/" + targetId : "#gallery";
+          renderGallery(targetId);
         }
       });
     })
@@ -439,7 +538,7 @@
       note.textContent = "Sending…";
       note.style.color = "";
 
-      const contactSlug = document.body.dataset.contactFormSlug || "contact";
+      const contactSlug = cfg.contactFormSlug || document.body.dataset.contactFormSlug || "contact";
       try {
         const formRes = await fetch(api(`/public/contact-forms/by-slug/${encodeURIComponent(contactSlug)}`));
         if (!formRes.ok) throw new Error("Could not load form");

@@ -10,13 +10,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body data-api-base="https://api.adeptlogics.com" data-domain="pjphotos" data-tenant-id="4f136c45-5e21-455a-9d0c-e1b56a0fbd1b">
   <a class="skip-link" href="#main">Skip to content</a>
 
   <!-- HEADER -->
   <header class="header" id="top">
     <div class="container header__inner">
-      <a class="brand" href="#home" aria-label="PJ Wilkinson Photography home">
+      <a class="brand" href="#" data-nav="home" aria-label="PJ Wilkinson Photography home">
         <span class="brand__mark" aria-hidden="true">
           <!-- Simple camera mark (SVG) -->
           <svg width="34" height="26" viewBox="0 0 34 26" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -37,14 +37,8 @@
         </button>
 
         <div class="nav__menu" id="navMenu">
-          <a class="nav__link" href="#home">Home</a>
-          <a class="nav__link" href="#services">Services</a>
-          <a class="nav__link" href="#book">Book Now</a>
-          <a class="nav__link" href="#gallery">Gallery</a>
-          <a class="nav__link" href="#buy">Buy Photos</a>
-          <a class="nav__link" href="#about">About</a>
-          <a class="nav__link" href="#contact">Contact</a>
-          <a class="btn btn--primary nav__cta" href="#book">Book Now</a>
+          <!-- Menu will be loaded dynamically from API -->
+          <div id="dynamicMenu"></div>
         </div>
       </nav>
 
@@ -53,7 +47,8 @@
   </header>
 
   <main id="main">
-    <!-- HERO -->
+    <!-- Home: all sections (hero, services, gallery, etc.) -->
+    <div id="homeView">
     <section class="hero" id="home" aria-label="Hero">
       <div class="hero__bg" role="img" aria-label="Featured photo placeholder"></div>
 
@@ -115,37 +110,18 @@
       </div>
     </section>
 
-    <!-- GALLERY -->
+    <!-- GALLERY (folders + images from API) -->
     <section class="section section--alt" id="gallery">
       <div class="container">
-        <div class="section__head section__head--split">
-          <div>
-            <h2 class="section__title">Gallery</h2>
-            <p class="section__subtitle">A quick look at recent work. Click any tile to open a lightbox.</p>
-          </div>
-          <div class="filters" role="tablist" aria-label="Gallery filters">
-            <button class="chip is-active" type="button" data-filter="all" role="tab" aria-selected="true">All</button>
-            <button class="chip" type="button" data-filter="portraits" role="tab" aria-selected="false">Portraits</button>
-            <button class="chip" type="button" data-filter="weddings" role="tab" aria-selected="false">Weddings</button>
-            <button class="chip" type="button" data-filter="events" role="tab" aria-selected="false">Events</button>
-            <button class="chip" type="button" data-filter="families" role="tab" aria-selected="false">Families</button>
-          </div>
+        <div class="section__head">
+          <div class="gallery__breadcrumb" id="galleryBreadcrumb" aria-label="Gallery location"></div>
+          <h2 class="section__title" id="galleryTitle">Gallery</h2>
+          <p class="section__subtitle" id="gallerySubtitle">Browse folders and click any image to view full size.</p>
         </div>
 
-        <div class="masonry" id="masonry">
-          <!-- 12 modern placeholders (you can replace with real images) -->
-          <button class="tile" data-cat="weddings" data-title="Golden hour wedding" type="button" aria-label="Open photo: Golden hour wedding"></button>
-          <button class="tile" data-cat="portraits" data-title="Studio portrait" type="button" aria-label="Open photo: Studio portrait"></button>
-          <button class="tile" data-cat="events" data-title="Event candids" type="button" aria-label="Open photo: Event candids"></button>
-          <button class="tile" data-cat="families" data-title="Family session" type="button" aria-label="Open photo: Family session"></button>
-          <button class="tile" data-cat="portraits" data-title="Branding session" type="button" aria-label="Open photo: Branding session"></button>
-          <button class="tile" data-cat="weddings" data-title="Details & rings" type="button" aria-label="Open photo: Details & rings"></button>
-          <button class="tile" data-cat="events" data-title="Stage moments" type="button" aria-label="Open photo: Stage moments"></button>
-          <button class="tile" data-cat="families" data-title="Playful candids" type="button" aria-label="Open photo: Playful candids"></button>
-          <button class="tile" data-cat="weddings" data-title="First dance" type="button" aria-label="Open photo: First dance"></button>
-          <button class="tile" data-cat="portraits" data-title="Outdoor portrait" type="button" aria-label="Open photo: Outdoor portrait"></button>
-          <button class="tile" data-cat="events" data-title="Reception energy" type="button" aria-label="Open photo: Reception energy"></button>
-          <button class="tile" data-cat="families" data-title="Soft light family" type="button" aria-label="Open photo: Soft light family"></button>
+        <div class="gallery__content" id="galleryContent">
+          <div class="gallery__folders" id="galleryFolders"></div>
+          <div class="masonry" id="masonry"></div>
         </div>
 
         <div class="section__foot">
@@ -309,6 +285,14 @@
         </div>
       </div>
     </section>
+    </div>
+    <!-- Single-page content from API (same layout, different main content) -->
+    <div id="pageView" class="section page-view" hidden aria-live="polite">
+      <div class="container page-view__inner">
+        <h1 class="page-view__title" id="pageViewTitle"></h1>
+        <div class="page-view__body" id="pageViewBody"></div>
+      </div>
+    </div>
   </main>
 
   <!-- FOOTER -->
@@ -319,12 +303,12 @@
         <span class="footer__small">© <span id="year"></span> All rights reserved.</span>
       </div>
       <div class="footer__links">
-        <a href="#home">Home</a>
-        <a href="#services">Services</a>
+        <a href="#">Home</a>
+        <a href="#/services">Services</a>
         <a href="#gallery">Gallery</a>
         <a href="#buy">Buy Photos</a>
-        <a href="#about">About</a>
-        <a href="#contact">Contact</a>
+        <a href="#/about">About</a>
+        <a href="#/contact">Contact</a>
       </div>
     </div>
   </footer>

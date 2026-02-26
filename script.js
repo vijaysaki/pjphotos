@@ -441,7 +441,7 @@
       galleryBreadcrumb.innerHTML = crumbs.join(' <span aria-hidden="true">/</span> ');
     }
     if (galleryTitle) galleryTitle.textContent = current ? (current.name || "Gallery") : "Gallery";
-    if (gallerySubtitle) gallerySubtitle.textContent = current?.description || "Browse folders and click any image to view full size.";
+    if (gallerySubtitle) gallerySubtitle.textContent = current?.description || "";
 
     if (galleryFolders) {
       if (children.length === 0 && !folderId) {

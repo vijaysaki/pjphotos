@@ -8,8 +8,8 @@ window.PJPHOTOS_CONFIG = {
   siteName: "PJ Wilkinson Photography",
   // Payment handles for Venmo, Zelle, Cash App (show on buy flow)
   payment: {
-    venmo: "@your-handle",      // Venmo username
-    zelle: "email@example.com", // Zelle email or phone
-    cashapp: "$yourhandle",     // Cash App $tag
+    venmo: "@trickwilk",
+    zelle: "859-490-1165",
+    cashapp: "@TrickWilk",
   },
 };

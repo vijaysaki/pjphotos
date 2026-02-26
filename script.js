@@ -42,6 +42,7 @@
       const payload = {
         tenantId,
         buyerEmail: email,
+        amount: amount,
         items: items.map((img) => ({
           url: img.url || img.thumbnailUrl,
           fileName: img.fileName,

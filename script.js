@@ -1,3 +1,57 @@
+  // Utility: Generate random order code
+  function generateOrderCode(len = 8) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < len; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+
+  // Show order confirmation modal/section
+  function showOrderConfirmation(amount) {
+    const code = generateOrderCode();
+    const orderConfirmation = document.getElementById('orderConfirmation');
+    const orderCodeDisplay = document.getElementById('orderCodeDisplay');
+    const orderCodeDisplay2 = document.getElementById('orderCodeDisplay2');
+    const venmoAmount = document.getElementById('venmoAmount');
+    if (orderConfirmation && orderCodeDisplay && orderCodeDisplay2 && venmoAmount) {
+      orderCodeDisplay.textContent = code;
+      orderCodeDisplay2.textContent = code;
+      venmoAmount.textContent = amount;
+      orderConfirmation.hidden = false;
+      orderConfirmation.setAttribute('aria-modal', 'true');
+      setTimeout(() => { orderConfirmation.focus && orderConfirmation.focus(); }, 10);
+    }
+    const closeModal = () => {
+      if (orderConfirmation) {
+        orderConfirmation.removeAttribute('aria-modal');
+        setTimeout(() => { orderConfirmation.hidden = true; }, 250);
+      }
+    };
+    const closeBtn = document.getElementById('orderCloseBtn');
+    if (closeBtn) {
+      closeBtn.onclick = closeModal;
+    }
+    // ESC key closes modal
+    const escListener = (e) => {
+      if (e.key === 'Escape') closeModal();
+    };
+    document.addEventListener('keydown', escListener);
+    // Click outside box closes modal
+    const outsideListener = (e) => {
+      if (e.target === orderConfirmation) closeModal();
+    };
+    orderConfirmation.addEventListener('mousedown', outsideListener);
+    // Clean up listeners on close
+    const cleanup = () => {
+      document.removeEventListener('keydown', escListener);
+      orderConfirmation.removeEventListener('mousedown', outsideListener);
+    };
+    closeBtn && closeBtn.addEventListener('click', cleanup);
+    orderConfirmation.addEventListener('transitionend', function handler() {
+      if (orderConfirmation.hidden) cleanup();
+      orderConfirmation.removeEventListener('transitionend', handler);
+    });
+  }
 // PJ Wilkinson Photography — layout preserved, content from backend API
 (() => {
   const qs = (s, el = document) => el.querySelector(s);
@@ -630,11 +684,9 @@
 
   if (buyWholeGalleryBtn) {
     buyWholeGalleryBtn.addEventListener("click", () => {
-      const match = (window.location.hash || "").match(/gallery\/([a-f0-9-]+)/i);
-      if (!match) return;
       const n = currentGalleryImageCount ?? 0;
-      const { desc } = calcPrice(n);
-      window.location.hash = "#/contact?buy=whole&count=" + n + "&desc=" + encodeURIComponent(desc);
+      const { total } = calcPrice(n);
+      showOrderConfirmation(`$${total}`);
     });
   }
   if (selectPhotosBtn) {
@@ -653,12 +705,8 @@
     buySelectedBtn.addEventListener("click", () => {
       const n = selectedImages.size;
       if (n === 0) return;
-      const { desc } = calcPrice(n);
-      const selected = currentGalleryImages.filter((img) => selectedImages.has(img._key));
-      const fileList = selected.map((img) => img.fileName || img.title || img.altText || "Photo").join(",");
-      let hash = "#/book?buy=selected&count=" + n + "&desc=" + encodeURIComponent(desc);
-      if (fileList) hash += "&files=" + encodeURIComponent(fileList);
-      window.location.hash = hash;
+      const { total } = calcPrice(n);
+      showOrderConfirmation(`$${total}`);
     });
   }
   if (clearSelectionBtn) {

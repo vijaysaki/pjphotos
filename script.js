@@ -154,16 +154,6 @@
       .map((item) => {
         const l = (item.label || "").toLowerCase();
         const isGallery = l.includes("gallery") || item.isGallery;
-        if (isGallery && Array.isArray(tree) && tree.length) {
-          const megaMenu = renderGalleryMegaMenu(tree);
-          return `<li class="nav__item nav__item--dropdown nav__item--megamenu relative">
-            <button type="button" class="nav__link nav__link--dropdown flex items-center justify-between w-full py-2 px-3 rounded font-medium text-heading md:w-auto hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0" aria-expanded="false" aria-haspopup="true">
-              ${item.label || "Gallery"}
-              <svg class="w-4 h-4 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
-            </button>
-            ${megaMenu}
-          </li>`;
-        }
         let href = item.href || item.external_url || "#";
         if (!href.startsWith("#") && !href.startsWith("http")) href = "#" + href;
         if (item.page && (item.page.slug || item.page.full_path)) href = "#/" + (item.page.slug || item.page.full_path).replace(/^\//, "");
@@ -458,7 +448,19 @@
         galleryFolders.innerHTML = "<p class=\"gallery__empty\">No folders found. See troubleshooting below.</p>";
       } else if (children.length > 0) {
         galleryFolders.innerHTML = children
-          .map((f) => `<a href="#" data-gallery-id="${f.id}" class="gallery__folder" aria-label="Open folder: ${(f.name || "").replace(/"/g, "&quot;")}"><span class="gallery__folderIcon" aria-hidden="true">📁</span><span class="gallery__folderName">${(f.name || "Folder").replace(/</g, "&lt;")}</span></a>`)
+          .map((f) => {
+            // Show up to 4 preview images if available
+            const previews = (f.images && f.images.length)
+              ? f.images.slice(0, 4).map((img, i) => `<img src="${img.thumbUrl || img.url || img}" alt="" class="gallery__folderPreviewImg gallery__folderPreviewImg--fan${i}" loading="lazy">`).join("")
+              : '<div class="gallery__folderNoImg">No preview</div>';
+            return `<a href="#" data-gallery-id="${f.id}" class="gallery__folder gallery__folder--block" aria-label="Open folder: ${(f.name || "").replace(/"/g, "&quot;")}">
+              <div class="gallery__folderPreview">${previews}</div>
+              <div class="gallery__folderBlockLabel">
+                <span class="gallery__folderName">${(f.name || "Folder").replace(/</g, "&lt;")}</span>
+                <span class="gallery__folderCount">${(typeof f._allImagesCount === 'number' ? f._allImagesCount : (f.images && f.images.length ? f.images.length : '')) + (f._allImagesCount === 1 ? ' photo' : f._allImagesCount > 1 ? ' photos' : '')}</span>
+              </div>
+            </a>`;
+          })
           .join("");
       } else {
         galleryFolders.innerHTML = "";
@@ -534,7 +536,51 @@
 
   fetch(api("/public/galleries/tree"))
     .then((res) => (res.ok ? res.json() : []))
-    .then((tree) => {
+    .then(async (tree) => {
+      // Helper: recursively inject preview images from folder's own images endpoint
+      async function injectPreviews(folders) {
+        for (const folder of folders) {
+          // Always fetch all images to get the true count
+          let imgs = [];
+          // First, process children so their images/counts are available
+          if (folder.children && folder.children.length) {
+            await injectPreviews(folder.children);
+          }
+          try {
+            const res = await fetch(api(`/public/galleries/${folder.id}/images`));
+            if (res.ok) {
+              imgs = await res.json();
+            }
+          } catch (e) {}
+          if (Array.isArray(imgs) && imgs.length) {
+            folder._allImagesCount = imgs.length;
+            folder.images = imgs.slice(0, 4);
+          } else {
+            // If no images, look for images in children (now guaranteed to be loaded)
+            let childImages = [];
+            let childCount = 0;
+            const gather = (nodes) => {
+              for (const n of nodes) {
+                if (n.images && n.images.length) childImages.push(...n.images);
+                if (typeof n._allImagesCount === 'number') childCount += n._allImagesCount;
+                if (n.children && n.children.length) gather(n.children);
+              }
+            };
+            if (folder.children && folder.children.length) {
+              gather(folder.children);
+            }
+            if (childImages.length) {
+              folder.images = childImages.slice(0, 4);
+            }
+            if (childCount > 0) {
+              folder._allImagesCount = childCount;
+            }
+          }
+        }
+      }
+      if (Array.isArray(tree)) {
+        await injectPreviews(tree);
+      }
       galleryTree = Array.isArray(tree) ? tree : [];
       const hash = (window.location.hash || "").replace(/^#\/?/, "");
       if (!hash.match(/^gallery/)) renderGallery();
@@ -573,7 +619,9 @@
     })
     .catch(() => {
       if (galleryFolders) galleryFolders.innerHTML = "";
-      if (masonry) masonry.innerHTML = "<p class=\"gallery__empty\">Could not load galleries. Check that the Galleries module is enabled.</p>";
+      if (masonry) {
+        masonry.innerHTML = "<p class=\"gallery__empty\"><strong>Could not load galleries.</strong></p><p class=\"gallery__empty\">Check: (1) <code>config.js</code> <code>apiBase</code> points to the production API. (2) Your hosting domain is allowed (CORS). (3) Galleries module is enabled in Admin.</p>";
+      }
     });
 
   const selectPhotosBtn = qs("#selectPhotosBtn");

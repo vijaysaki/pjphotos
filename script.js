@@ -1,57 +1,3 @@
-  // Utility: Generate random order code
-  function generateOrderCode(len = 8) {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < len; i++) code += chars[Math.floor(Math.random() * chars.length)];
-    return code;
-  }
-
-  // Show order confirmation modal/section
-  function showOrderConfirmation(amount) {
-    const code = generateOrderCode();
-    const orderConfirmation = document.getElementById('orderConfirmation');
-    const orderCodeDisplay = document.getElementById('orderCodeDisplay');
-    const orderCodeDisplay2 = document.getElementById('orderCodeDisplay2');
-    const venmoAmount = document.getElementById('venmoAmount');
-    if (orderConfirmation && orderCodeDisplay && orderCodeDisplay2 && venmoAmount) {
-      orderCodeDisplay.textContent = code;
-      orderCodeDisplay2.textContent = code;
-      venmoAmount.textContent = amount;
-      orderConfirmation.hidden = false;
-      orderConfirmation.setAttribute('aria-modal', 'true');
-      setTimeout(() => { orderConfirmation.focus && orderConfirmation.focus(); }, 10);
-    }
-    const closeModal = () => {
-      if (orderConfirmation) {
-        orderConfirmation.removeAttribute('aria-modal');
-        setTimeout(() => { orderConfirmation.hidden = true; }, 250);
-      }
-    };
-    const closeBtn = document.getElementById('orderCloseBtn');
-    if (closeBtn) {
-      closeBtn.onclick = closeModal;
-    }
-    // ESC key closes modal
-    const escListener = (e) => {
-      if (e.key === 'Escape') closeModal();
-    };
-    document.addEventListener('keydown', escListener);
-    // Click outside box closes modal
-    const outsideListener = (e) => {
-      if (e.target === orderConfirmation) closeModal();
-    };
-    orderConfirmation.addEventListener('mousedown', outsideListener);
-    // Clean up listeners on close
-    const cleanup = () => {
-      document.removeEventListener('keydown', escListener);
-      orderConfirmation.removeEventListener('mousedown', outsideListener);
-    };
-    closeBtn && closeBtn.addEventListener('click', cleanup);
-    orderConfirmation.addEventListener('transitionend', function handler() {
-      if (orderConfirmation.hidden) cleanup();
-      orderConfirmation.removeEventListener('transitionend', handler);
-    });
-  }
 // PJ Wilkinson Photography — layout preserved, content from backend API
 (() => {
   const qs = (s, el = document) => el.querySelector(s);
@@ -62,6 +8,86 @@
   const API_BASE = (cfg.apiBase || document.body.dataset.apiBase || "https://api.adeptlogics.com").replace(/\/$/, "");
   const DOMAIN = cfg.domain || document.body.dataset.domain || window.location.hostname || "localhost";
   const TENANT_ID = cfg.tenantId || document.body.dataset.tenantId || "";
+
+  // Show order modal: capture email, store purchase request, send pay-via email
+  function showOrderConfirmation(amount, items, { apiBase, tenantId, payment }) {
+    if (!items || items.length === 0) return;
+    const orderConfirmation = document.getElementById("orderConfirmation");
+    const formState = document.getElementById("orderConfirmationForm");
+    const successState = document.getElementById("orderConfirmationSuccess");
+    const venmoAmount = document.getElementById("venmoAmount");
+    const emailForm = document.getElementById("orderEmailForm");
+    const emailInput = document.getElementById("orderBuyerEmail");
+    const submitBtn = document.getElementById("orderSubmitBtn");
+    if (!orderConfirmation || !formState || !successState || !venmoAmount || !emailForm || !emailInput) return;
+    formState.hidden = false;
+    successState.hidden = true;
+    venmoAmount.textContent = amount;
+    emailInput.value = "";
+    orderConfirmation.hidden = false;
+    orderConfirmation.setAttribute("aria-modal", "true");
+    setTimeout(() => emailInput.focus(), 10);
+    const closeModal = () => {
+      orderConfirmation.removeAttribute("aria-modal");
+      setTimeout(() => { orderConfirmation.hidden = true; }, 250);
+    };
+    emailForm.onsubmit = async (e) => {
+      e.preventDefault();
+      const email = (emailInput.value || "").trim();
+      if (!email) return;
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Sending…";
+      }
+      const payload = {
+        tenantId,
+        buyerEmail: email,
+        items: items.map((img) => ({
+          url: img.url || img.thumbnailUrl,
+          fileName: img.fileName,
+          title: img.title || img.altText,
+        })).filter((i) => i.url),
+        payment: payment ? { venmo: payment.venmo, zelle: payment.zelle, cashapp: payment.cashapp } : undefined,
+      };
+      try {
+        const res = await fetch(`${apiBase}/public/purchase-requests`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          formState.hidden = true;
+          successState.hidden = false;
+          const closeBtn = document.getElementById("orderCloseBtn");
+          if (closeBtn) closeBtn.onclick = closeModal;
+        } else {
+          const err = await res.text();
+          alert("Something went wrong. Please try again or contact us.\n" + (err || res.status));
+        }
+      } catch (err) {
+        alert("Could not reach the server. Please check your connection and try again.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Send me payment instructions";
+        }
+      }
+    };
+    const closeBtn = document.getElementById("orderCloseBtn");
+    if (closeBtn) closeBtn.onclick = closeModal;
+    const escListener = (e) => { if (e.key === "Escape") closeModal(); };
+    document.addEventListener("keydown", escListener);
+    const outsideListener = (e) => { if (e.target === orderConfirmation) closeModal(); };
+    orderConfirmation.addEventListener("mousedown", outsideListener);
+    const cleanup = () => {
+      document.removeEventListener("keydown", escListener);
+      orderConfirmation.removeEventListener("mousedown", outsideListener);
+    };
+    orderConfirmation.addEventListener("transitionend", function handler() {
+      if (orderConfirmation.hidden) cleanup();
+      orderConfirmation.removeEventListener("transitionend", handler);
+    });
+  }
 
   const api = (path) => {
     const sep = path.includes("?") ? "&" : "?";
@@ -334,14 +360,9 @@
       cachedPages = Array.isArray(pages) ? pages : [];
       if (!cachedPages.length) return;
       const home = pageBySlug(cachedPages, "home") || cachedPages[0];
-      const heroCard = qs(".hero__card");
-      if (heroCard && home) {
-        const heroTitle = qs(".hero__title", heroCard);
-        const heroLead = qs(".hero__lead", heroCard);
-        const eyebrow = qs(".eyebrow", heroCard);
-        if (heroTitle && home.title) heroTitle.textContent = home.title;
-        if (heroLead && home.content) heroLead.innerHTML = home.content.length > 200 ? home.content.slice(0, 200) + "…" : home.content;
-        if (eyebrow && home.meta_description) eyebrow.textContent = home.meta_description;
+      const homePage = qs("#homePage");
+      if (homePage && home && home.content) {
+        homePage.innerHTML = home.content;
       }
       ["services", "gallery", "book", "contact"].forEach((slug) => {
         const page = pageBySlug(cachedPages, slug);
@@ -699,7 +720,12 @@
     buyWholeGalleryBtn.addEventListener("click", () => {
       const n = currentGalleryImageCount ?? 0;
       const { total } = calcPrice(n);
-      showOrderConfirmation(`$${total}`);
+      const items = currentGalleryImages || [];
+      showOrderConfirmation(`$${total}`, items, {
+        apiBase: API_BASE,
+        tenantId: TENANT_ID,
+        payment: cfg.payment,
+      });
     });
   }
   if (selectPhotosBtn) {
@@ -719,7 +745,12 @@
       const n = selectedImages.size;
       if (n === 0) return;
       const { total } = calcPrice(n);
-      showOrderConfirmation(`$${total}`);
+      const items = (currentGalleryImages || []).filter((img) => selectedImages.has(img._key));
+      showOrderConfirmation(`$${total}`, items, {
+        apiBase: API_BASE,
+        tenantId: TENANT_ID,
+        payment: cfg.payment,
+      });
     });
   }
   if (clearSelectionBtn) {

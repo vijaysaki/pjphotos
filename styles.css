@@ -34,6 +34,25 @@
   border-radius: 8px;
   padding: 8px 0;
 }
+.order-confirmation__box form {
+  text-align: left;
+  margin-top: 12px;
+}
+.order-confirmation__box label {
+  display: block;
+  font-size: 0.9em;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #333;
+}
+.order-confirmation__box input[type="email"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1em;
+  box-sizing: border-box;
+}
 .order-confirmation__box button {
   margin-top: 18px;
   padding: 8px 20px;
@@ -43,6 +62,10 @@
   color: #fff;
   font-size: 1em;
   cursor: pointer;
+}
+.order-confirmation__box button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 :root {
   --deep: #3e594f;

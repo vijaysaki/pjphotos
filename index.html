@@ -1,19 +1,3 @@
-  <!-- Order Confirmation Modal/Section -->
-  <div id="orderConfirmation" class="order-confirmation" hidden>
-    <div class="order-confirmation__box">
-      <h2>Order Confirmation</h2>
-      <p>Your order code:</p>
-      <div class="order-confirmation__code" id="orderCodeDisplay"></div>
-      <p>To complete your purchase, please send payment via Venmo:</p>
-      <ul>
-        <li><strong>Venmo Username:</strong> <span id="venmoUsername">@YourVenmoName</span></li>
-        <li><strong>Amount:</strong> <span id="venmoAmount"></span></li>
-        <li><strong>Order Code:</strong> <span id="orderCodeDisplay2"></span> (include in payment note)</li>
-      </ul>
-      <p>Once payment is received, you will receive a download link for your photos.</p>
-      <button id="orderCloseBtn">Close</button>
-    </div>
-  </div>
 <!doctype html>
 <html lang="en">
 <head>
@@ -54,6 +38,7 @@
   <main id="main">
     <!-- Home page: hero only -->
     <div id="homePage" class="page">
+      <!--
       <section class="hero" aria-label="Hero">
         <div class="hero__bg" role="img" aria-label="Featured photo placeholder"></div>
         <div class="container hero__content">
@@ -73,6 +58,7 @@
           </div>
         </div>
       </section>
+      -->
       <section class="welcome-message" style="margin-top:2rem;">
         <div class="container">
           <div class="welcome-card">
@@ -390,6 +376,27 @@
       <button class="lightbox__close" type="button" data-close="1" aria-label="Close">×</button>
       <div class="lightbox__image" id="lightboxImage" role="img" aria-label=""></div>
       <div class="lightbox__caption" id="lightboxCaption"></div>
+    </div>
+  </div>
+
+  <!-- Order Confirmation Modal -->
+  <div id="orderConfirmation" class="order-confirmation" hidden>
+    <div class="order-confirmation__box">
+      <div id="orderConfirmationForm">
+        <h2>Get payment instructions</h2>
+        <p>Your total: <strong id="venmoAmount"></strong></p>
+        <p>Enter your email and we'll send you payment instructions (Venmo, Zelle, Cash App). Once we receive payment, we'll email you a link to download your photos.</p>
+        <form id="orderEmailForm" novalidate>
+          <label for="orderBuyerEmail">Email address</label>
+          <input type="email" id="orderBuyerEmail" name="email" required placeholder="you@example.com" autocomplete="email">
+          <button type="submit" id="orderSubmitBtn">Send me payment instructions</button>
+        </form>
+      </div>
+      <div id="orderConfirmationSuccess" hidden>
+        <h2>Check your email</h2>
+        <p>We've sent you payment instructions. Pay via Venmo, Zelle, or Cash App and we'll email you a download link for your photos.</p>
+        <button id="orderCloseBtn">Close</button>
+      </div>
     </div>
   </div>
 

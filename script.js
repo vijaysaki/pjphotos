@@ -132,6 +132,19 @@
       showPageById(page);
       if (page === "book") {
         const params = getHashParams();
+        const isBuyFlow = params.buy === "selected" || params.buy === "whole";
+        const paymentCard = qs("#bookPaymentCard");
+        const paymentLinks = qs("#bookPaymentLinks");
+        if (paymentCard) paymentCard.hidden = !isBuyFlow;
+        if (isBuyFlow && paymentLinks) {
+          const pmt = cfg.payment || {};
+          const links = [];
+          const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+          if (pmt.venmo) links.push(`<a href="https://venmo.com/${String(pmt.venmo).replace(/^@/,'')}" target="_blank" rel="noopener">Venmo: ${esc(pmt.venmo)}</a>`);
+          if (pmt.zelle) links.push(`<span>Zelle: ${esc(pmt.zelle)}</span>`);
+          if (pmt.cashapp) links.push(`<a href="https://cash.app/${String(pmt.cashapp).replace(/^\$/,'')}" target="_blank" rel="noopener">Cash App: ${esc(pmt.cashapp)}</a>`);
+          paymentLinks.innerHTML = links.length ? `<p class="book__payment-item">${links.join('</p><p class="book__payment-item">')}</p>` : "";
+        }
         if (params.buy === "selected" && params.files) {
           const msg = qs("#message", qs("#bookingForm"));
           if (msg) {

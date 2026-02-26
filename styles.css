@@ -1350,6 +1350,10 @@ select.input { appearance: none; }
   box-shadow: var(--shadow-soft);
 }
 .infoCard + .infoCard { margin-top: 12px; }
+.book__payment-instructions { margin: 0 0 10px; font-size: 14px; }
+.book__payment-item { margin: 6px 0; }
+.book__payment-item a { color: var(--coral); font-weight: 600; }
+.book__payment-item a:hover { text-decoration: underline; }
 .infoCard--accent {
   background: color-mix(in oklab, var(--paper) 70%, white);
 }

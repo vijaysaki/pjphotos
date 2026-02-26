@@ -16,49 +16,68 @@
   };
 
   const defaultTitle = document.title;
-  const homeView = qs("#homeView");
+  const pages = {
+    home: qs("#homePage"),
+    services: qs("#servicesPage"),
+    gallery: qs("#galleryPage"),
+    buy: qs("#buyPage"),
+    about: qs("#aboutPage"),
+    book: qs("#bookPage"),
+    contact: qs("#contactPage"),
+  };
   const pageView = qs("#pageView");
   const pageViewTitle = qs("#pageViewTitle");
   const pageViewBody = qs("#pageViewBody");
 
-  const getPageSlugFromHash = () => {
-    const h = (window.location.hash || "").replace(/^#\/?/, "").trim().toLowerCase();
-    if (!h || h === "home") return null;
-    return h;
-  };
-
-  const showHome = (scrollId) => {
-    if (homeView) homeView.hidden = false;
+  const hideAllPages = () => {
+    Object.values(pages).forEach((p) => { if (p) p.hidden = true; });
     if (pageView) pageView.hidden = true;
-    document.title = defaultTitle;
-    if (scrollId) {
-      const el = qs(`#${scrollId}`);
-      if (el) el.scrollIntoView({ behavior: "smooth" });
-    }
   };
 
-  const showPage = (slug, page) => {
+  const showPageById = (id) => {
+    hideAllPages();
+    const el = pages[id] || pageView;
+    if (el) el.hidden = false;
+    const titles = { services: "Services", gallery: "Gallery", buy: "Buy Photos", about: "About", book: "Book Now", contact: "Contact" };
+    document.title = id === "home" ? defaultTitle : (titles[id] || id) + " — " + defaultTitle;
+    window.scrollTo(0, 0);
+  };
+
+  const showApiPage = (slug, page) => {
     if (!pageView || !pageViewTitle || !pageViewBody) return;
+    hideAllPages();
     pageViewTitle.textContent = page.title || slug;
     pageViewBody.innerHTML = page.content || "<p>No content.</p>";
-    if (homeView) homeView.hidden = true;
     pageView.hidden = false;
     document.title = (page.title || slug) + " — " + defaultTitle;
     window.scrollTo(0, 0);
   };
 
+  const getRouteFromHash = () => {
+    const h = (window.location.hash || "#").replace(/^#\/?/, "").trim();
+    if (!h) return { page: "home", rest: "" };
+    const pathOnly = h.split("?")[0];
+    const parts = pathOnly.split("/");
+    return { page: (parts[0] || "home").toLowerCase(), rest: parts.slice(1).join("/") };
+  };
+
   let cachedPages = null;
   const route = () => {
-    const slug = getPageSlugFromHash();
-    if (!slug) {
-      showHome();
+    const { page, rest } = getRouteFromHash();
+    if (page === "home" || !page) {
+      showPageById("home");
       return;
     }
-    const loadAndShow = (pages) => {
+    const builtIn = Object.keys(pages);
+    if (builtIn.includes(page)) {
+      showPageById(page);
+      return;
+    }
+    const loadAndShow = (apiPages) => {
       const pageBySlug = (arr, s) => arr && arr.find((p) => (p.slug || (p.full_path || "").replace(/^\//, "") || "").toLowerCase() === s);
-      const page = pageBySlug(pages, slug);
-      if (page) showPage(slug, page);
-      else showHome();
+      const p = pageBySlug(apiPages, page);
+      if (p) showApiPage(page, p);
+      else showPageById("home");
     };
     if (cachedPages && Array.isArray(cachedPages)) {
       loadAndShow(cachedPages);
@@ -66,66 +85,52 @@
     }
     fetch(api("/public/pages"))
       .then((res) => (res.ok ? res.json() : []))
-      .then((pages) => {
-        cachedPages = Array.isArray(pages) ? pages : [];
+      .then((apiPages) => {
+        cachedPages = Array.isArray(apiPages) ? apiPages : [];
         loadAndShow(cachedPages);
       })
-      .catch(() => showHome());
+      .catch(() => showPageById("home"));
   };
 
   window.addEventListener("hashchange", route);
+  route();
   document.body.addEventListener("click", (e) => {
-    const a = e.target.closest('a[href="#"]');
+    const a = e.target.closest('a[href="#"], a[href="#/"]');
     if (a) {
       e.preventDefault();
-      window.location.hash = "";
+      window.location.hash = "#/";
       route();
-    }
-    const sectionLink = e.target.closest('a[href^="#"]');
-    if (sectionLink && pageView && !pageView.hidden) {
-      const href = (sectionLink.getAttribute("href") || "").trim();
-      if (href === "#" || href === "#/") return;
-      if (href.startsWith("#/")) return;
-      e.preventDefault();
-      window.location.hash = "";
-      route();
-      setTimeout(() => {
-        const id = href.replace(/^#/, "");
-        if (id) showHome(id);
-      }, 50);
     }
   });
 
-  // --- Build nested gallery dropdown HTML (recursive) ---
-  const renderGalleryDropdown = (tree) => {
+  const renderGalleryMegaMenu = (tree) => {
     if (!Array.isArray(tree) || !tree.length) return "";
-    const renderFolder = (f) => {
+    const renderFolder = (f, isSub = false) => {
       const name = (f.name || "Folder").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-      const link = `<a href="#gallery/${f.id}" class="nav__dropdown__link">${name}</a>`;
-      if (f.children?.length) {
-        const sub = f.children.map(renderFolder).join("");
-        return `<div class="nav__dropdown__item nav__dropdown__item--has-sub"><a href="#gallery/${f.id}" class="nav__dropdown__link nav__dropdown__parent">${name}</a><div class="nav__dropdown__sub">${sub}</div></div>`;
+      const hasChildren = Array.isArray(f.children) && f.children.length > 0;
+      if (hasChildren) {
+        const subItems = f.children.map((c) => renderFolder(c, true)).join("");
+        const cls = isSub ? "nav__megamenu__link" : "nav__megamenu__heading";
+        return `<div class="nav__megamenu__item nav__megamenu__item--has-sub"><a href="#/gallery/${f.id}" class="${cls}">${name}</a><div class="nav__megamenu__sub">${subItems}</div></div>`;
       }
-      return `<div class="nav__dropdown__item">${link}</div>`;
+      const cls = isSub ? "nav__megamenu__link" : "nav__megamenu__heading";
+      return `<div class="nav__megamenu__item"><a href="#/gallery/${f.id}" class="${cls}">${name}</a></div>`;
     };
-    const items = tree.map(renderFolder).join("");
-    return `<div class="nav__dropdown" id="navGalleryDropdown"><a href="#gallery" class="nav__dropdown__link nav__dropdown__link--all">All Galleries</a>${items}</div>`;
+    const items = tree.map((f) => renderFolder(f)).join("");
+    return `<div class="nav__megamenu"><div class="nav__megamenu__inner"><a href="#/gallery" class="nav__megamenu__all">View all galleries</a><div class="nav__megamenu__list">${items}</div></div></div>`;
   };
 
-  // --- Load menu + gallery tree, inject Gallery dropdown ---
-  const dynamicMenu = qs("#dynamicMenu");
-  let galleryTreeForNav = [];
   const buildMenuHtml = (items, tree) => {
     const defaultItems = [
-      { label: "Home", href: "#" },
+      { label: "Home", href: "#/" },
       { label: "Services", href: "#/services" },
-      { label: "Gallery", href: "#gallery", isGallery: true },
-      { label: "Buy Photos", href: "#buy" },
+      { label: "Gallery", href: "#/gallery", isGallery: true },
       { label: "About", href: "#/about" },
       { label: "Contact", href: "#/contact" },
-      { label: "Book Now", href: "#book", isCta: true },
+      { label: "Book Now", href: "#/book", isCta: true },
     ];
     const list = (items && items.length) ? items : defaultItems;
+    const hash = (window.location.hash || "").replace(/^#\/?/, "") || "home";
     return list
       .filter((i) => i.visible !== false)
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -133,87 +138,84 @@
         const l = (item.label || "").toLowerCase();
         const isGallery = l.includes("gallery") || item.isGallery;
         if (isGallery && Array.isArray(tree) && tree.length) {
-          const dropdown = renderGalleryDropdown(tree);
-          return `<div class="nav__item nav__item--dropdown"><a href="#gallery" class="nav__link nav__link--dropdown" aria-expanded="false" aria-haspopup="true">${item.label || "Gallery"} ▾</a>${dropdown}</div>`;
+          const megaMenu = renderGalleryMegaMenu(tree);
+          return `<li class="nav__item nav__item--dropdown nav__item--megamenu relative">
+            <button type="button" class="nav__link nav__link--dropdown flex items-center justify-between w-full py-2 px-3 rounded font-medium text-heading md:w-auto hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0" aria-expanded="false" aria-haspopup="true">
+              ${item.label || "Gallery"}
+              <svg class="w-4 h-4 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+            </button>
+            ${megaMenu}
+          </li>`;
         }
         let href = item.href || item.external_url || "#";
         if (!href.startsWith("#") && !href.startsWith("http")) href = "#" + href;
-        if (item.page && (item.page.slug || item.page.full_path)) {
-          const slug = (item.page.slug || item.page.full_path).replace(/^\//, "");
-          href = "#/" + slug;
-        } else if (!item.external_url && item.label && !href) {
-          if (l.includes("book")) href = "#book";
-          else if (l.includes("home")) href = "#";
-          else if (l.includes("gallery")) href = "#gallery";
-          else if (l.includes("buy")) href = "#buy";
+        if (item.page && (item.page.slug || item.page.full_path)) href = "#/" + (item.page.slug || item.page.full_path).replace(/^\//, "");
+        else if (!item.external_url && item.label && href === "#") {
+          if (l.includes("book")) href = "#/book";
+          else if (l.includes("home")) href = "#/";
+          else if (l.includes("gallery")) href = "#/gallery";
+          else if (l.includes("buy")) href = "#/buy";
           else if (l.includes("services")) href = "#/services";
           else if (l.includes("about")) href = "#/about";
           else if (l.includes("contact")) href = "#/contact";
         }
         const isCta = l.includes("book") || item.isCta;
-        return `<a class="${isCta ? "btn btn--primary nav__cta" : "nav__link"}" href="${href}">${item.label || "Link"}</a>`;
+        const slugMap = { home: "", services: "services", gallery: "gallery", "buy photos": "buy", about: "about", contact: "contact", "book now": "book" };
+        const slug = slugMap[l] || l.replace(/\s+/g, "");
+        const hashBase = hash.split("/")[0];
+        const current = hashBase === slug || (hashBase === "" && slug === "");
+        const linkClass = isCta
+          ? "nav__cta btn btn--primary block py-2 px-3 rounded"
+          : "nav__link block py-2 px-3 text-heading rounded hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0";
+        const ariaCurrent = !isCta && current ? ' aria-current="page"' : "";
+        return `<li><a class="${linkClass}" href="${href}"${ariaCurrent}>${item.label || "Link"}</a></li>`;
       })
       .join("");
   };
 
+  const dynamicMenu = qs("#dynamicMenu");
   if (dynamicMenu) {
     Promise.all([
       fetch(api("/public/pages/menus")).then((r) => (r.ok ? r.json() : [])),
       fetch(api("/public/galleries/tree")).then((r) => (r.ok ? r.json() : [])),
     ])
       .then(([menus, tree]) => {
-        galleryTreeForNav = Array.isArray(tree) ? tree : [];
         const headerMenu = Array.isArray(menus) && menus.length ? menus.find((m) => (m.slug || m.name || "").toLowerCase() === "header") || menus[0] : null;
         const items = (headerMenu?.items || []).map((i) => {
           let href = i.external_url || "#";
           if (i.page && (i.page.slug || i.page.full_path)) href = "#/" + (i.page.slug || i.page.full_path).replace(/^\//, "");
           else if (!i.external_url && i.label) {
             const ll = (i.label || "").toLowerCase();
-            if (ll.includes("book")) href = "#book";
-            else if (ll.includes("home")) href = "#";
-            else if (ll.includes("gallery")) href = "#gallery";
-            else if (ll.includes("buy")) href = "#buy";
+            if (ll.includes("book")) href = "#/book";
+            else if (ll.includes("home")) href = "#/";
+            else if (ll.includes("gallery")) href = "#/gallery";
+            else if (ll.includes("buy")) href = "#/buy";
             else if (ll.includes("services")) href = "#/services";
             else if (ll.includes("about")) href = "#/about";
             else if (ll.includes("contact")) href = "#/contact";
           }
           return { ...i, href };
         });
-        dynamicMenu.innerHTML = buildMenuHtml(items, galleryTreeForNav);
-        qsa(".nav__link, .nav__cta, .nav__dropdown__link", dynamicMenu).forEach((a) =>
+        dynamicMenu.innerHTML = buildMenuHtml(items, Array.isArray(tree) ? tree : []);
+        qsa(".nav__link, .nav__cta, .nav__megamenu__all, .nav__megamenu__heading, .nav__megamenu__link", dynamicMenu).forEach((a) =>
           a.addEventListener("click", () => {
-            const menu = qs("#navMenu");
+            const menu = qs("#navbar-dropdown");
             const toggle = qs(".nav__toggle");
-            if (menu && toggle) {
-              menu.classList.remove("is-open");
-              toggle.setAttribute("aria-expanded", "false");
-            }
+            if (menu && toggle) { menu.classList.remove("is-open"); toggle.setAttribute("aria-expanded", "false"); }
             qsa(".nav__item--dropdown", dynamicMenu).forEach((d) => d.classList.remove("is-open"));
           })
         );
         qsa(".nav__item--dropdown", dynamicMenu).forEach((item) => {
           const trigger = qs(".nav__link--dropdown", item);
           if (trigger) {
-            trigger.addEventListener("click", (e) => {
-              e.preventDefault();
-              item.classList.toggle("is-open");
-              trigger.setAttribute("aria-expanded", item.classList.contains("is-open"));
-            });
-            item.addEventListener("mouseenter", () => {
-              if (window.innerWidth >= 900) item.classList.add("is-open");
-            });
-            item.addEventListener("mouseleave", () => {
-              if (window.innerWidth >= 900) item.classList.remove("is-open");
-            });
+            trigger.addEventListener("click", (e) => { e.preventDefault(); item.classList.toggle("is-open"); trigger.setAttribute("aria-expanded", item.classList.contains("is-open")); });
+            item.addEventListener("mouseenter", () => { if (window.innerWidth >= 900) item.classList.add("is-open"); });
+            item.addEventListener("mouseleave", () => { if (window.innerWidth >= 900) item.classList.remove("is-open"); });
           }
         });
       })
-      .catch(() => {
-        dynamicMenu.innerHTML = buildMenuHtml(null, []);
-      });
+      .catch(() => { dynamicMenu.innerHTML = buildMenuHtml(null, []); });
   }
-
-  route();
 
   // --- Load services from /public/services (cards + booking dropdown) ---
   const servicesGrid = qs(".cards", qs("#services"));
@@ -299,8 +301,48 @@
   const galleryBreadcrumb = qs("#galleryBreadcrumb");
   const galleryTitle = qs("#galleryTitle");
   const gallerySubtitle = qs("#gallerySubtitle");
+  const galleryBuy = qs("#galleryBuy");
+  const buyWholeGalleryBtn = qs("#buyWholeGallery");
+  const galleryBuySelection = qs("#galleryBuySelection");
+  const galleryContent = qs("#galleryContent");
+  const selectedCountEl = qs("#selectedCount");
+  const galleryBuyPricing = qs("#galleryBuyPricing");
+  const galleryBuyThumbs = qs("#galleryBuyThumbs");
 
   let galleryTree = [];
+  let currentGalleryImageCount = 0;
+  let currentGalleryImages = [];
+  const selectedImages = new Set();
+
+  const calcPrice = (n) => {
+    if (n <= 0) return { total: 0, desc: "" };
+    if (n <= 5) return { total: n * 4, desc: `$${n * 4} ($4 each)` };
+    if (n <= 15) return { total: n * 3, desc: `$${n * 3} ($3 each)` };
+    if (n <= 30) return { total: 50, desc: "$50 flat" };
+    return { total: 75, desc: "$75 flat" };
+  };
+
+  const updateBuySelection = () => {
+    if (!selectedCountEl || !galleryBuyPricing || !galleryBuyThumbs) return;
+    const n = selectedImages.size;
+    selectedCountEl.textContent = n;
+    if (n === 0) {
+      galleryBuySelection.hidden = true;
+      return;
+    }
+    galleryBuySelection.hidden = false;
+    const { desc } = calcPrice(n);
+    galleryBuyPricing.innerHTML = `<strong>${desc}</strong>`;
+    const selected = currentGalleryImages.filter((img) => selectedImages.has(img._key));
+    galleryBuyThumbs.innerHTML = selected
+      .map((img) => {
+        const thumb = img.thumbnailUrl || img.url;
+        const title = (img.title || img.altText || "Photo").replace(/"/g, "&quot;");
+        return `<div class="gallery__buy-thumb"><img src="${thumb}" alt="${title}" width="64" height="64"></div>`;
+      })
+      .join("");
+  };
+
   let galleryPath = []; // [{ id, name }] breadcrumb trail
 
   const findFolderById = (tree, id) => {
@@ -326,7 +368,7 @@
   };
 
   const syncGalleryFromHash = () => {
-    const hash = (window.location.hash || "").replace(/^#/, "");
+    const hash = (window.location.hash || "").replace(/^#\/?/, "");
     const match = hash.match(/^gallery(?:\/([a-f0-9-]+))?/i);
     if (!match) return;
     const folderId = match[1] || null;
@@ -361,13 +403,23 @@
     if (gallerySubtitle) gallerySubtitle.textContent = current?.description || "Browse folders and click any image to view full size.";
 
     if (galleryFolders) {
-      galleryFolders.innerHTML = children
-        .map((f) => `<a href="#" data-gallery-id="${f.id}" class="gallery__folder" aria-label="Open folder: ${(f.name || "").replace(/"/g, "&quot;")}"><span class="gallery__folderIcon" aria-hidden="true">📁</span><span class="gallery__folderName">${(f.name || "Folder").replace(/</g, "&lt;")}</span></a>`)
-        .join("");
+      if (children.length === 0 && !folderId) {
+        galleryFolders.innerHTML = "<p class=\"gallery__empty\">No folders found. See troubleshooting below.</p>";
+      } else if (children.length > 0) {
+        galleryFolders.innerHTML = children
+          .map((f) => `<a href="#" data-gallery-id="${f.id}" class="gallery__folder" aria-label="Open folder: ${(f.name || "").replace(/"/g, "&quot;")}"><span class="gallery__folderIcon" aria-hidden="true">📁</span><span class="gallery__folderName">${(f.name || "Folder").replace(/</g, "&lt;")}</span></a>`)
+          .join("");
+      } else {
+        galleryFolders.innerHTML = "";
+      }
     }
     if (masonry) masonry.innerHTML = "Loading…";
     if (!folderId) {
-      if (masonry) masonry.innerHTML = "Select a folder to view images.";
+      if (children.length === 0) {
+        masonry.innerHTML = "<p class=\"gallery__empty\"><strong>No gallery folders to display.</strong></p><p class=\"gallery__empty\">Check: (1) <code>config.js</code> <code>tenantId</code> must match the tenant in Admin where your galleries live. (2) <code>apiBase</code> must point to your backend (use <code>http://localhost:3000</code> for local). (3) In Admin → Galleries, ensure folders exist and status is <strong>Active</strong>.</p>";
+      } else {
+        masonry.innerHTML = "Select a folder above to view images.";
+      }
       return;
     }
     fetch(api(`/public/galleries/${folderId}/images`))
@@ -376,17 +428,58 @@
         if (!masonry) return;
         if (!Array.isArray(images) || !images.length) {
           masonry.innerHTML = "<p class=\"gallery__empty\">No images in this folder.</p>";
+          if (galleryBuy) { galleryBuy.hidden = true; }
           return;
         }
-        masonry.innerHTML = images
-          .map((img) => {
-            const thumbUrl = img.thumbnailUrl || img.url;
-            const fullUrl = img.url || img.thumbnailUrl;
-            const title = img.title || img.altText || "Photo";
-            return `<button class="tile" data-cat="gallery" data-title="${(title || "").replace(/"/g, "&quot;")}" data-url="${(fullUrl || "").replace(/"/g, "&quot;")}" type="button" aria-label="Open photo: ${(title || "").replace(/"/g, "&quot;")}"${thumbUrl ? ` style="background-image:url(${thumbUrl}); background-size:cover;"` : ""}></button>`;
-          })
-          .join("");
+        currentGalleryImages = images.map((img, i) => ({ ...img, _key: String(img.id || "img-" + i) }));
+        const esc = (s) => (String(s ?? "")).replace(/"/g, "&quot;").replace(/</g, "&lt;");
+        const imgEl = (img) => {
+          const thumbUrl = img.thumbnailUrl || img.url;
+          const fullUrl = img.url || img.thumbnailUrl;
+          const title = img.title || img.altText || "Photo";
+          const imgId = img._key;
+          return `<div class="gallery__tile-wrap" data-image-id="${esc(imgId)}" data-selectable="1"><input type="checkbox" class="gallery__tile-check" id="chk-${esc(imgId)}" aria-label="Select ${esc(title)}"><button class="tile gallery__img-wrap" data-cat="gallery" data-image-id="${esc(imgId)}" data-title="${esc(title)}" data-url="${esc(fullUrl)}" type="button" aria-label="Open photo: ${esc(title)}"><img class="h-auto max-w-full rounded-base" src="${esc(thumbUrl || fullUrl)}" alt="${esc(title)}"></button></div>`;
+        };
+        const numCols = Math.min(4, images.length);
+        const baseCount = Math.floor(images.length / numCols);
+        const remainder = images.length % numCols;
+        const columns = [];
+        let idx = 0;
+        for (let c = 0; c < numCols; c++) {
+          const count = baseCount + (c < remainder ? 1 : 0);
+          const col = images.slice(idx, idx + count);
+          if (col.length) columns.push(col);
+          idx += count;
+        }
+        const html = `<div class="gallery-masonry">${columns.map((col) => `<div class="gallery-masonry__col">${col.map((img) => `<div>${imgEl(img)}</div>`).join("")}</div>`).join("")}</div>`;
+        masonry.innerHTML = html;
         tiles = qsa(".tile");
+        qsa(".gallery__tile-wrap[data-selectable='1']", masonry).forEach((wrap) => {
+          wrap.addEventListener("click", function (e) {
+            if (!galleryContent || !galleryContent.classList.contains("is-select-mode")) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const chk = this.querySelector(".gallery__tile-check");
+            const id = this.getAttribute("data-image-id");
+            if (chk && id) {
+              chk.checked = !chk.checked;
+              if (chk.checked) selectedImages.add(id);
+              else selectedImages.delete(id);
+              updateBuySelection();
+            }
+          }, true);
+        });
+        if (galleryBuy && buyWholeGalleryBtn) {
+          galleryBuy.hidden = false;
+          currentGalleryImageCount = images.length;
+          galleryBuySelection.hidden = true;
+          galleryContent?.classList.remove("is-select-mode");
+          selectedImages.clear();
+          updateBuySelection();
+          const n = images.length;
+          const { desc } = calcPrice(n);
+          buyWholeGalleryBtn.textContent = `Buy whole gallery (${n} photo${n !== 1 ? "s" : ""} – ${desc})`;
+        }
       })
       .catch(() => {
         if (masonry) masonry.innerHTML = "<p class=\"gallery__empty\">Could not load images.</p>";
@@ -397,11 +490,11 @@
     .then((res) => (res.ok ? res.json() : []))
     .then((tree) => {
       galleryTree = Array.isArray(tree) ? tree : [];
-      const hash = (window.location.hash || "").replace(/^#/, "");
+      const hash = (window.location.hash || "").replace(/^#\/?/, "");
       if (!hash.match(/^gallery/)) renderGallery();
       else syncGalleryFromHash();
       window.addEventListener("hashchange", () => {
-        const h = (window.location.hash || "").replace(/^#/, "");
+        const h = (window.location.hash || "").replace(/^#\/?/, "");
         if (h.match(/^gallery/)) syncGalleryFromHash();
       });
       document.body.addEventListener("click", (e) => {
@@ -411,7 +504,7 @@
           const id = folderBtn.getAttribute("data-gallery-id");
           const name = folderBtn.querySelector(".gallery__folderName")?.textContent || "Folder";
           galleryPath = [...galleryPath, { id, name }];
-          window.location.hash = "#gallery/" + id;
+          window.location.hash = "#/gallery/" + id;
           renderGallery(id);
         }
         const backBtn = e.target.closest("[data-gallery-back]");
@@ -420,14 +513,14 @@
           const backId = backBtn.getAttribute("data-gallery-back");
           if (backId === "root") {
             galleryPath = [];
-            window.location.hash = "#gallery";
+            window.location.hash = "#/gallery";
             renderGallery(null);
             return;
           }
           const idx = galleryPath.findIndex((p) => p.id === backId);
           galleryPath = idx >= 0 ? galleryPath.slice(0, idx) : [];
           const targetId = idx > 0 ? galleryPath[idx - 1]?.id : null;
-          window.location.hash = targetId ? "#gallery/" + targetId : "#gallery";
+          window.location.hash = targetId ? "#/gallery/" + targetId : "#/gallery";
           renderGallery(targetId);
         }
       });
@@ -436,6 +529,58 @@
       if (galleryFolders) galleryFolders.innerHTML = "";
       if (masonry) masonry.innerHTML = "<p class=\"gallery__empty\">Could not load galleries. Check that the Galleries module is enabled.</p>";
     });
+
+  const selectPhotosBtn = qs("#selectPhotosBtn");
+  const buySelectedBtn = qs("#buySelectedBtn");
+  const clearSelectionBtn = qs("#clearSelectionBtn");
+
+  if (buyWholeGalleryBtn) {
+    buyWholeGalleryBtn.addEventListener("click", () => {
+      const match = (window.location.hash || "").match(/gallery\/([a-f0-9-]+)/i);
+      if (!match) return;
+      const n = currentGalleryImageCount ?? 0;
+      const { desc } = calcPrice(n);
+      window.location.hash = "#/contact?buy=whole&count=" + n + "&desc=" + encodeURIComponent(desc);
+    });
+  }
+  if (selectPhotosBtn) {
+    selectPhotosBtn.addEventListener("click", () => {
+      galleryContent?.classList.toggle("is-select-mode");
+      const inSelect = galleryContent?.classList.contains("is-select-mode");
+      selectPhotosBtn.textContent = inSelect ? "Cancel selection" : "Select photos";
+      if (!inSelect) {
+        selectedImages.clear();
+        qsa(".gallery__tile-check").forEach((c) => { c.checked = false; });
+        updateBuySelection();
+      }
+    });
+  }
+  if (buySelectedBtn) {
+    buySelectedBtn.addEventListener("click", () => {
+      const n = selectedImages.size;
+      if (n === 0) return;
+      const { desc } = calcPrice(n);
+      window.location.hash = "#/contact?buy=selected&count=" + n + "&desc=" + encodeURIComponent(desc);
+    });
+  }
+  if (clearSelectionBtn) {
+    clearSelectionBtn.addEventListener("click", () => {
+      selectedImages.clear();
+      qsa(".gallery__tile-check").forEach((c) => { c.checked = false; });
+      updateBuySelection();
+    });
+  }
+  document.body.addEventListener("change", (e) => {
+    const chk = e.target.closest(".gallery__tile-check");
+    if (chk) {
+      const id = chk.closest(".gallery__tile-wrap")?.getAttribute("data-image-id");
+      if (id) {
+        if (chk.checked) selectedImages.add(id);
+        else selectedImages.delete(id);
+        updateBuySelection();
+      }
+    }
+  });
 
   // --- Optional: site/contact config (phone, email, instagram) ---
   fetch(api("/public/site"))
@@ -471,18 +616,19 @@
 
   // Mobile menu
   const toggle = qs(".nav__toggle");
-  const menu = qs("#navMenu");
+  const menu = qs("#navbar-dropdown");
   if (toggle && menu) {
     const closeMenu = () => {
       menu.classList.remove("is-open");
       toggle.setAttribute("aria-expanded", "false");
     };
-    toggle.addEventListener("click", () => {
+    toggle.addEventListener("click", (e) => {
+      e.preventDefault();
       const open = menu.classList.toggle("is-open");
       toggle.setAttribute("aria-expanded", String(open));
     });
     document.body.addEventListener("click", (e) => {
-      if (e.target.closest(".nav__link, .nav__cta")) closeMenu();
+      if (e.target.closest(".nav__link, .nav__cta, .nav__megamenu__all, .nav__megamenu__heading, .nav__megamenu__link")) closeMenu();
     });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeMenu();
@@ -517,11 +663,13 @@
   };
 
   document.body.addEventListener("click", (e) => {
-    const t = e.target.closest(".tile");
-    if (t) {
-      const url = t.dataset.url || (t.style.backgroundImage || "").replace(/url\(["']?([^"')]+)["']?\)/, "$1");
-      openLightbox(t.dataset.title, t.dataset.cat, url);
-    }
+    if (galleryContent && galleryContent.classList.contains("is-select-mode")) return;
+    const t = e.target.closest(".tile.gallery__img-wrap, .tile[data-url]");
+    if (!t || !t.dataset.url) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const url = t.dataset.url;
+    openLightbox(t.dataset.title, t.dataset.cat, url);
   });
 
   qsa("[data-close='1']").forEach((el) => el.addEventListener("click", closeLightbox));

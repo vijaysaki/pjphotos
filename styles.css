@@ -786,15 +786,138 @@ main { padding-top: 72px; } /* Space for fixed nav */
   flex-wrap: wrap;
 }
 
-/* Select mode: checkboxes on tiles */
+/* Floating cart — appears when selecting photos */
+.cart-float {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 600;
+  width: min(360px, calc(100vw - 40px));
+  max-height: min(70vh, 420px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.06);
+  overflow: hidden;
+}
+.cart-float__header {
+  padding: 14px 16px;
+  background: var(--deep);
+  color: #fff;
+  flex-shrink: 0;
+}
+.cart-float__title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+.cart-float__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.cart-float__btn {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: var(--coral);
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+}
+.cart-float__btn:hover {
+  background: color-mix(in oklab, var(--coral) 85%, #000);
+}
+.cart-float__clear {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: transparent;
+  color: rgba(255,255,255,.85);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.cart-float__clear:hover {
+  color: #fff;
+}
+.cart-float__list {
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.cart-float__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cart-float__item:last-child {
+  border-bottom: none;
+}
+.cart-float__thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+.cart-float__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cart-float__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--deep);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cart-float__file {
+  font-size: 11px;
+  color: var(--deep);
+  opacity: 0.75;
+  font-family: ui-monospace, monospace;
+}
+.cart-float__cat {
+  font-size: 12px;
+  color: var(--sage);
+}
+
+/* Select mode: label overlay for native checkbox toggle */
 .gallery__tile-wrap {
   position: relative;
+}
+.gallery__tile-select {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  cursor: pointer;
+  pointer-events: none;
+}
+.is-select-mode .gallery__tile-select {
+  pointer-events: auto;
+}
+.gallery__tile-select-area {
+  display: block;
+  position: absolute;
+  inset: 0;
 }
 .gallery__tile-check {
   position: absolute;
   top: 10px;
   left: 10px;
-  z-index: 5;
+  z-index: 11;
   width: 24px;
   height: 24px;
   margin: 0;
@@ -805,6 +928,7 @@ main { padding-top: 72px; } /* Space for fixed nav */
   border: 2px solid var(--deep);
   border-radius: 6px;
   cursor: pointer;
+  pointer-events: auto;
 }
 .gallery__tile-check:checked {
   background: var(--coral);
@@ -818,6 +942,9 @@ main { padding-top: 72px; } /* Space for fixed nav */
 }
 .is-select-mode .gallery__tile-wrap {
   cursor: pointer;
+}
+.is-select-mode .gallery__tile-wrap .gallery__img-wrap {
+  pointer-events: none;
 }
 
 .filters {
@@ -876,6 +1003,7 @@ main { padding-top: 72px; } /* Space for fixed nav */
   cursor: pointer;
   overflow: hidden;
   transition: transform .14s ease, box-shadow .14s ease;
+  position: relative;
 }
 .gallery__img-wrap:hover {
   transform: translateY(-2px);
@@ -886,6 +1014,31 @@ main { padding-top: 72px; } /* Space for fixed nav */
   width: 100%;
   height: auto;
   vertical-align: middle;
+}
+/* Watermark: repeated logo + diagonal lines, low opacity (replaces tile overlay for gallery) */
+.gallery__img-wrap.tile::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0,
+      transparent 20px,
+      rgba(255,255,255,0.03) 20px,
+      rgba(255,255,255,0.03) 21px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      transparent 0,
+      transparent 20px,
+      rgba(255,255,255,0.02) 20px,
+      rgba(255,255,255,0.02) 21px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='60' viewBox='0 0 34 26'%3E%3Cpath d='M7 6.5l2-3h6l1.5 2h8c1.93 0 3.5 1.57 3.5 3.5v10c0 1.93-1.57 3.5-3.5 3.5H6.5C4.57 22.5 3 20.93 3 19V10c0-1.93 1.57-3.5 3.5-3.5H7Z' stroke='rgba(255,255,255,0.12)' stroke-width='1.2' fill='none' stroke-linejoin='round'/%3E%3Ccircle cx='17' cy='14' r='5' stroke='rgba(255,255,255,0.12)' stroke-width='1.2' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat, repeat, repeat;
+  opacity: 1;
 }
 
 .tile {
@@ -914,7 +1067,6 @@ main { padding-top: 72px; } /* Space for fixed nav */
   box-shadow: 0 20px 46px rgba(0,0,0,.10);
 }
 .tile:hover::after { opacity: 1; }
-.gallery__img-wrap.tile::after { display: none; }
 .gallery__img-wrap.tile {
   border: none;
   background: transparent;
@@ -1138,11 +1290,36 @@ select.input { appearance: none; }
   cursor: pointer;
 }
 .lightbox__image {
+  position: relative;
   height: min(62vh, 560px);
   background:
     radial-gradient(900px 360px at 40% 20%, rgba(242,153,102,.25), transparent 55%),
     radial-gradient(900px 360px at 70% 80%, rgba(217,112,89,.18), transparent 55%),
     linear-gradient(120deg, rgba(255,255,255,.14), rgba(0,0,0,.25));
+}
+/* Lightbox watermark: same logo + diagonal lines */
+.lightbox__image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0,
+      transparent 24px,
+      rgba(255,255,255,0.04) 24px,
+      rgba(255,255,255,0.04) 25px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      transparent 0,
+      transparent 24px,
+      rgba(255,255,255,0.03) 24px,
+      rgba(255,255,255,0.03) 25px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='75' viewBox='0 0 34 26'%3E%3Cpath d='M7 6.5l2-3h6l1.5 2h8c1.93 0 3.5 1.57 3.5 3.5v10c0 1.93-1.57 3.5-3.5 3.5H6.5C4.57 22.5 3 20.93 3 19V10c0-1.93 1.57-3.5 3.5-3.5H7Z' stroke='rgba(255,255,255,0.1)' stroke-width='1' fill='none' stroke-linejoin='round'/%3E%3Ccircle cx='17' cy='14' r='5' stroke='rgba(255,255,255,0.1)' stroke-width='1' fill='none'/%3E%3C/svg%3E");
+  background-repeat: repeat, repeat, repeat;
 }
 .lightbox__caption {
   padding: 14px 16px 16px;

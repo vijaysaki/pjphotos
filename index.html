@@ -324,6 +324,18 @@
     </div>
   </footer>
 
+  <!-- FLOATING CART (shows when selecting photos) -->
+  <aside class="cart-float" id="cartFloat" hidden aria-label="Selected photos">
+    <div class="cart-float__header">
+      <h3 class="cart-float__title">Selected photos (<span id="cartCount">0</span>)</h3>
+      <div class="cart-float__actions">
+        <button type="button" class="cart-float__btn" id="cartBuyBtn">Buy selected</button>
+        <button type="button" class="cart-float__clear" id="cartClearBtn" aria-label="Clear selection">Clear</button>
+      </div>
+    </div>
+    <ul class="cart-float__list" id="cartList"></ul>
+  </aside>
+
   <!-- LIGHTBOX -->
   <div class="lightbox" id="lightbox" aria-hidden="true">
     <div class="lightbox__backdrop" data-close="1"></div>

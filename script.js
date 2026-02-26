@@ -61,6 +61,11 @@
     return { page: (parts[0] || "home").toLowerCase(), rest: parts.slice(1).join("/") };
   };
 
+  const getHashParams = () => {
+    const h = (window.location.hash || "").split("?")[1] || "";
+    return Object.fromEntries(new URLSearchParams(h));
+  };
+
   let cachedPages = null;
   const route = () => {
     const { page, rest } = getRouteFromHash();
@@ -71,6 +76,18 @@
     const builtIn = Object.keys(pages);
     if (builtIn.includes(page)) {
       showPageById(page);
+      if (page === "book") {
+        const params = getHashParams();
+        if (params.buy === "selected" && params.files) {
+          const msg = qs("#message", qs("#bookingForm"));
+          if (msg) {
+            const files = decodeURIComponent(params.files).split(",").filter(Boolean);
+            const fileList = files.map((f) => "• " + f.trim()).join("\n");
+            msg.value = "I'd like to purchase the following photos:\n\n" + fileList +
+              (params.desc ? "\n\n" + decodeURIComponent(params.desc) : "");
+          }
+        }
+      }
       return;
     }
     const loadAndShow = (apiPages) => {
@@ -312,6 +329,7 @@
   let galleryTree = [];
   let currentGalleryImageCount = 0;
   let currentGalleryImages = [];
+  let currentCategoryName = "Gallery";
   const selectedImages = new Set();
 
   const calcPrice = (n) => {
@@ -322,25 +340,58 @@
     return { total: 75, desc: "$75 flat" };
   };
 
+  const cartFloat = qs("#cartFloat");
+  const cartCountEl = qs("#cartCount");
+  const cartList = qs("#cartList");
+  const cartBuyBtn = qs("#cartBuyBtn");
+  const cartClearBtn = qs("#cartClearBtn");
+
   const updateBuySelection = () => {
-    if (!selectedCountEl || !galleryBuyPricing || !galleryBuyThumbs) return;
     const n = selectedImages.size;
-    selectedCountEl.textContent = n;
+    const selected = currentGalleryImages.filter((img) => selectedImages.has(img._key));
+
+    if (selectedCountEl) selectedCountEl.textContent = n;
     if (n === 0) {
-      galleryBuySelection.hidden = true;
+      if (galleryBuySelection) galleryBuySelection.hidden = true;
+      if (cartFloat) cartFloat.hidden = true;
       return;
     }
-    galleryBuySelection.hidden = false;
-    const { desc } = calcPrice(n);
-    galleryBuyPricing.innerHTML = `<strong>${desc}</strong>`;
-    const selected = currentGalleryImages.filter((img) => selectedImages.has(img._key));
-    galleryBuyThumbs.innerHTML = selected
-      .map((img) => {
-        const thumb = img.thumbnailUrl || img.url;
-        const title = (img.title || img.altText || "Photo").replace(/"/g, "&quot;");
-        return `<div class="gallery__buy-thumb"><img src="${thumb}" alt="${title}" width="64" height="64"></div>`;
-      })
-      .join("");
+    if (galleryBuySelection) galleryBuySelection.hidden = false;
+    if (galleryBuyPricing) {
+      const { desc } = calcPrice(n);
+      galleryBuyPricing.innerHTML = `<strong>${desc}</strong>`;
+    }
+    if (galleryBuyThumbs) {
+      galleryBuyThumbs.innerHTML = selected
+        .map((img) => {
+          const thumb = img.thumbnailUrl || img.url;
+          const title = (img.title || img.altText || "Photo").replace(/"/g, "&quot;");
+          return `<div class="gallery__buy-thumb"><img src="${thumb}" alt="${title}" width="64" height="64"></div>`;
+        })
+        .join("");
+    }
+
+    if (cartFloat && cartList) {
+      cartFloat.hidden = false;
+      if (cartCountEl) cartCountEl.textContent = n;
+      const esc = (s) => (String(s ?? "")).replace(/"/g, "&quot;").replace(/</g, "&lt;");
+      const category = esc(currentCategoryName);
+        cartList.innerHTML = selected
+        .map((img) => {
+          const thumb = img.thumbnailUrl || img.url;
+          const title = esc(img.title || img.altText || "Photo");
+          const fileName = esc(img.fileName || "");
+          return `<li class="cart-float__item">
+            <img class="cart-float__thumb" src="${thumb}" alt="" width="48" height="48">
+            <div class="cart-float__meta">
+              <span class="cart-float__name">${title}</span>
+              ${fileName ? `<span class="cart-float__file">${fileName}</span>` : ""}
+              <span class="cart-float__cat">${category}</span>
+            </div>
+          </li>`;
+        })
+        .join("");
+    }
   };
 
   let galleryPath = []; // [{ id, name }] breadcrumb trail
@@ -431,52 +482,47 @@
           if (galleryBuy) { galleryBuy.hidden = true; }
           return;
         }
-        currentGalleryImages = images.map((img, i) => ({ ...img, _key: String(img.id || "img-" + i) }));
+        currentGalleryImages = images.map((img, i) => ({ ...img, _key: `tile-${i}` }));
+        currentCategoryName = current?.name || "Gallery";
         const esc = (s) => (String(s ?? "")).replace(/"/g, "&quot;").replace(/</g, "&lt;");
-        const imgEl = (img) => {
+        const imgEl = (img, uniqueIdx) => {
           const thumbUrl = img.thumbnailUrl || img.url;
           const fullUrl = img.url || img.thumbnailUrl;
           const title = img.title || img.altText || "Photo";
-          const imgId = img._key;
-          return `<div class="gallery__tile-wrap" data-image-id="${esc(imgId)}" data-selectable="1"><input type="checkbox" class="gallery__tile-check" id="chk-${esc(imgId)}" aria-label="Select ${esc(title)}"><button class="tile gallery__img-wrap" data-cat="gallery" data-image-id="${esc(imgId)}" data-title="${esc(title)}" data-url="${esc(fullUrl)}" type="button" aria-label="Open photo: ${esc(title)}"><img class="h-auto max-w-full rounded-base" src="${esc(thumbUrl || fullUrl)}" alt="${esc(title)}"></button></div>`;
+          const imgId = img._key ?? `tile-${uniqueIdx}`;
+          const chkId = `chk-${uniqueIdx}`;
+          return `<div class="gallery__tile-wrap" data-image-id="${esc(imgId)}">
+            <button class="tile gallery__img-wrap" data-cat="gallery" data-image-id="${esc(imgId)}" data-title="${esc(title)}" data-url="${esc(fullUrl)}" type="button" aria-label="Open photo: ${esc(title)}"><img class="h-auto max-w-full rounded-base" src="${esc(thumbUrl || fullUrl)}" alt="${esc(title)}"></button>
+            <div class="gallery__tile-select"><input type="checkbox" class="gallery__tile-check" id="${esc(chkId)}"><span class="gallery__tile-select-area"></span></div>
+          </div>`;
         };
-        const numCols = Math.min(4, images.length);
-        const baseCount = Math.floor(images.length / numCols);
-        const remainder = images.length % numCols;
+        const numCols = Math.min(4, currentGalleryImages.length);
+        const baseCount = Math.floor(currentGalleryImages.length / numCols);
+        const remainder = currentGalleryImages.length % numCols;
         const columns = [];
         let idx = 0;
         for (let c = 0; c < numCols; c++) {
           const count = baseCount + (c < remainder ? 1 : 0);
-          const col = images.slice(idx, idx + count);
+          const col = currentGalleryImages.slice(idx, idx + count);
           if (col.length) columns.push(col);
           idx += count;
         }
-        const html = `<div class="gallery-masonry">${columns.map((col) => `<div class="gallery-masonry__col">${col.map((img) => `<div>${imgEl(img)}</div>`).join("")}</div>`).join("")}</div>`;
+        let tileIdx = 0;
+        const html = `<div class="gallery-masonry">${columns.map((col) => `<div class="gallery-masonry__col">${col.map((img) => {
+          const h = `<div>${imgEl(img, tileIdx)}</div>`;
+          tileIdx++;
+          return h;
+        }).join("")}</div>`).join("")}</div>`;
         masonry.innerHTML = html;
         tiles = qsa(".tile");
-        qsa(".gallery__tile-wrap[data-selectable='1']", masonry).forEach((wrap) => {
-          wrap.addEventListener("click", function (e) {
-            if (!galleryContent || !galleryContent.classList.contains("is-select-mode")) return;
-            e.preventDefault();
-            e.stopPropagation();
-            const chk = this.querySelector(".gallery__tile-check");
-            const id = this.getAttribute("data-image-id");
-            if (chk && id) {
-              chk.checked = !chk.checked;
-              if (chk.checked) selectedImages.add(id);
-              else selectedImages.delete(id);
-              updateBuySelection();
-            }
-          }, true);
-        });
         if (galleryBuy && buyWholeGalleryBtn) {
           galleryBuy.hidden = false;
-          currentGalleryImageCount = images.length;
+          currentGalleryImageCount = currentGalleryImages.length;
           galleryBuySelection.hidden = true;
           galleryContent?.classList.remove("is-select-mode");
           selectedImages.clear();
           updateBuySelection();
-          const n = images.length;
+          const n = currentGalleryImages.length;
           const { desc } = calcPrice(n);
           buyWholeGalleryBtn.textContent = `Buy whole gallery (${n} photo${n !== 1 ? "s" : ""} – ${desc})`;
         }
@@ -560,7 +606,11 @@
       const n = selectedImages.size;
       if (n === 0) return;
       const { desc } = calcPrice(n);
-      window.location.hash = "#/contact?buy=selected&count=" + n + "&desc=" + encodeURIComponent(desc);
+      const selected = currentGalleryImages.filter((img) => selectedImages.has(img._key));
+      const fileList = selected.map((img) => img.fileName || img.title || img.altText || "Photo").join(",");
+      let hash = "#/book?buy=selected&count=" + n + "&desc=" + encodeURIComponent(desc);
+      if (fileList) hash += "&files=" + encodeURIComponent(fileList);
+      window.location.hash = hash;
     });
   }
   if (clearSelectionBtn) {
@@ -569,6 +619,12 @@
       qsa(".gallery__tile-check").forEach((c) => { c.checked = false; });
       updateBuySelection();
     });
+  }
+  if (cartBuyBtn) {
+    cartBuyBtn.addEventListener("click", () => buySelectedBtn?.click());
+  }
+  if (cartClearBtn) {
+    cartClearBtn.addEventListener("click", () => clearSelectionBtn?.click());
   }
   document.body.addEventListener("change", (e) => {
     const chk = e.target.closest(".gallery__tile-check");
@@ -579,6 +635,22 @@
         else selectedImages.delete(id);
         updateBuySelection();
       }
+    }
+  });
+  document.body.addEventListener("click", (e) => {
+    if (!galleryContent?.classList.contains("is-select-mode")) return;
+    const wrap = e.target.closest(".gallery__tile-wrap");
+    if (!wrap) return;
+    const chk = wrap.querySelector(".gallery__tile-check");
+    if (!chk) return;
+    e.preventDefault();
+    e.stopPropagation();
+    chk.checked = !chk.checked;
+    const id = wrap.getAttribute("data-image-id");
+    if (id) {
+      if (chk.checked) selectedImages.add(id);
+      else selectedImages.delete(id);
+      updateBuySelection();
     }
   });
 

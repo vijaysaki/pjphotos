@@ -18,78 +18,78 @@
   <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
   <header class="relative bg-white">
     <nav aria-label="Top" class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      <div class="border-b border-gray-200">
-        <div class="flex h-16 items-center">
-          <button type="button" command="show-modal" commandfor="mobile-menu" class="relative rounded-md bg-white p-2 text-gray-400 lg:hidden">
+      <div class="border-b border-indigo-600">
+        <div class="flex h-16 items-center justify-between">
+          <div class="flex items-center">
+            <a href="#/" aria-label="PJ Wilkinson Photography home" class="flex items-center">
+              <svg width="32" height="28" viewBox="0 0 34 26" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 6.5l2-3h6l1.5 2h8c1.93 0 3.5 1.57 3.5 3.5v10c0 1.93-1.57 3.5-3.5 3.5H6.5C4.57 22.5 3 20.93 3 19V10c0-1.93 1.57-3.5 3.5-3.5H7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="17" cy="14" r="5" stroke="currentColor" stroke-width="2"/></svg>
+              <span class="ml-2 text-xl font-semibold text-indigo-700">PJ Wilkinson</span>
+            </a>
+            <div class="hidden lg:flex lg:ml-8 space-x-8">
+              <el-popover-group class="group/popover-group flex">
+                <div class="group/popover flex">
+                  <div class="relative flex">
+                    <button popovertarget="desktop-menu-galleries" class="relative flex items-center justify-center text-base font-medium transition-colors duration-200 ease-out text-gray-700 hover:text-indigo-600">
+                      Galleries
+                      <span aria-hidden="true" class="absolute inset-x-0 -bottom-px z-30 h-0.5 bg-transparent duration-200 ease-in group-has-open/popover:bg-indigo-600"></span>
+                    </button>
+                  </div>
+                  <el-popover id="desktop-menu-galleries" anchor="bottom" popover class="w-full overflow-visible bg-white text-sm text-gray-500 transition transition-discrete [--anchor-gap:1px] backdrop:bg-transparent open:block data-closed:opacity-0 data-enter:duration-200 data-enter:ease-out data-leave:duration-150 data-leave:ease-in">
+                    <div aria-hidden="true" class="absolute inset-0 top-1/2 bg-white shadow-sm"></div>
+                    <div class="relative bg-white">
+                      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                        <div class="grid grid-cols-3 gap-x-8 gap-y-10 py-10">
+                          <div>
+                            <p class="font-semibold text-gray-900">Wrestling</p>
+                            <ul class="mt-4 space-y-4">
+                              <li><a href="#/gallery?cat=grandad" class="hover:text-indigo-600">Grandad</a></li>
+                              <li><a href="#/gallery?cat=dad" class="hover:text-indigo-600">Dad</a></li>
+                              <li><a href="#/gallery?cat=child" class="hover:text-indigo-600">Child</a></li>
+                              <li><a href="#/gallery?cat=school" class="hover:text-indigo-600">School Galleries</a></li>
+                            </ul>
+                          </div>
+                          <div>
+                            <p class="font-semibold text-gray-900">Portraits</p>
+                            <ul class="mt-4 space-y-4">
+                              <li><a href="#/gallery?cat=seniors" class="hover:text-indigo-600">Seniors</a></li>
+                              <li><a href="#/gallery?cat=headshots" class="hover:text-indigo-600">Headshots</a></li>
+                              <li><a href="#/gallery?cat=branding" class="hover:text-indigo-600">Branding</a></li>
+                            </ul>
+                          </div>
+                          <div>
+                            <p class="font-semibold text-gray-900">Events</p>
+                            <ul class="mt-4 space-y-4">
+                              <li><a href="#/gallery?cat=weddings" class="hover:text-indigo-600">Weddings</a></li>
+                              <li><a href="#/gallery?cat=families" class="hover:text-indigo-600">Families</a></li>
+                              <li><a href="#/gallery?cat=celebrations" class="hover:text-indigo-600">Celebrations</a></li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </el-popover>
+                </div>
+              </el-popover-group>
+              <a href="#/services" class="text-base font-medium text-gray-700 hover:text-indigo-600">Services</a>
+              <a href="#/about" class="text-base font-medium text-gray-700 hover:text-indigo-600">About</a>
+              <a href="#/contact" class="text-base font-medium text-gray-700 hover:text-indigo-600">Contact</a>
+            </div>
+          </div>
+          <div class="flex items-center">
+            <a href="#/gallery" class="group -m-2 flex items-center p-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" class="size-6 shrink-0 text-gray-400 group-hover:text-indigo-600">
+                <path d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span class="ml-2 text-base font-medium text-gray-700 group-hover:text-indigo-600">Gallery</span>
+            </a>
+          </div>
+          <button type="button" command="show-modal" commandfor="mobile-menu" class="relative rounded-md bg-white p-2 text-gray-400 lg:hidden ml-2">
             <span class="absolute -inset-0.5"></span>
             <span class="sr-only">Open menu</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" class="size-6">
               <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
-          <div class="ml-4 flex lg:ml-0">
-            <a href="#/" aria-label="PJ Wilkinson Photography home">
-              <span class="sr-only">PJ Wilkinson</span>
-              <svg width="32" height="28" viewBox="0 0 34 26" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 6.5l2-3h6l1.5 2h8c1.93 0 3.5 1.57 3.5 3.5v10c0 1.93-1.57 3.5-3.5 3.5H6.5C4.57 22.5 3 20.93 3 19V10c0-1.93 1.57-3.5 3.5-3.5H7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="17" cy="14" r="5" stroke="currentColor" stroke-width="2"/></svg>
-            </a>
-          </div>
-          <el-popover-group class="group/popover-group hidden lg:ml-8 lg:block lg:self-stretch">
-            <div class="flex h-full space-x-8">
-              <div class="group/popover flex">
-                <div class="relative flex">
-                  <button popovertarget="desktop-menu-galleries" class="relative flex items-center justify-center text-sm font-medium transition-colors duration-200 ease-out group-not-has-open/popover:text-gray-700 group-has-open/popover:text-indigo-600 group-not-has-open/popover:hover:text-gray-800">
-                    Galleries
-                    <span aria-hidden="true" class="absolute inset-x-0 -bottom-px z-30 h-0.5 bg-transparent duration-200 ease-in group-has-open/popover:bg-indigo-600"></span>
-                  </button>
-                </div>
-                <el-popover id="desktop-menu-galleries" anchor="bottom" popover class="w-full overflow-visible bg-white text-sm text-gray-500 transition transition-discrete [--anchor-gap:1px] backdrop:bg-transparent open:block data-closed:opacity-0 data-enter:duration-200 data-enter:ease-out data-leave:duration-150 data-leave:ease-in">
-                  <div aria-hidden="true" class="absolute inset-0 top-1/2 bg-white shadow-sm"></div>
-                  <div class="relative bg-white">
-                    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                      <div class="grid grid-cols-3 gap-x-8 gap-y-10 py-10">
-                        <div>
-                          <p class="font-medium text-gray-900">Wrestling</p>
-                          <ul class="mt-4 space-y-4">
-                            <li><a href="#/gallery?cat=grandad" class="hover:text-indigo-600">Grandad</a></li>
-                            <li><a href="#/gallery?cat=dad" class="hover:text-indigo-600">Dad</a></li>
-                            <li><a href="#/gallery?cat=child" class="hover:text-indigo-600">Child</a></li>
-                            <li><a href="#/gallery?cat=school" class="hover:text-indigo-600">School Galleries</a></li>
-                          </ul>
-                        </div>
-                        <div>
-                          <p class="font-medium text-gray-900">Portraits</p>
-                          <ul class="mt-4 space-y-4">
-                            <li><a href="#/gallery?cat=seniors" class="hover:text-indigo-600">Seniors</a></li>
-                            <li><a href="#/gallery?cat=headshots" class="hover:text-indigo-600">Headshots</a></li>
-                            <li><a href="#/gallery?cat=branding" class="hover:text-indigo-600">Branding</a></li>
-                          </ul>
-                        </div>
-                        <div>
-                          <p class="font-medium text-gray-900">Events</p>
-                          <ul class="mt-4 space-y-4">
-                            <li><a href="#/gallery?cat=weddings" class="hover:text-indigo-600">Weddings</a></li>
-                            <li><a href="#/gallery?cat=families" class="hover:text-indigo-600">Families</a></li>
-                            <li><a href="#/gallery?cat=celebrations" class="hover:text-indigo-600">Celebrations</a></li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </el-popover>
-              </div>
-              <a href="#/services" class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800">Services</a>
-              <a href="#/about" class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800">About</a>
-              <a href="#/contact" class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-800">Contact</a>
-            </div>
-          </el-popover-group>
-          <div class="ml-auto flex items-center">
-            <a href="#/gallery" class="group -m-2 flex items-center p-2">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" class="size-6 shrink-0 text-gray-400 group-hover:text-gray-500">
-                <path d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">Gallery</span>
-            </a>
-          </div>
         </div>
       </div>
     </nav>

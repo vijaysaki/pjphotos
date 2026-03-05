@@ -401,9 +401,14 @@
   const buyWholeGalleryBtn = qs("#buyWholeGallery");
   const galleryBuySelection = qs("#galleryBuySelection");
   const galleryContent = qs("#galleryContent");
-  const selectedCountEl = qs("#selectedCount");
-  const galleryBuyPricing = qs("#galleryBuyPricing");
-  const galleryBuyThumbs = qs("#galleryBuyThumbs");
+  // Mobile cart elements
+  const mobileCartBtn = qs("#mobileCartBtn");
+  const mobileCartPanel = qs("#mobileCartPanel");
+  const mobileCartCount = qs("#mobileCartCount");
+  const mobileCartPanelCount = qs("#mobileCartPanelCount");
+  const mobileCartPanelList = qs("#mobileCartPanelList");
+  const mobileCartBuyBtn = qs("#mobileCartBuyBtn");
+  const mobileCartClearBtn = qs("#mobileCartClearBtn");
 
   let galleryTree = [];
   let currentGalleryImageCount = 0;
@@ -429,49 +434,72 @@
     const n = selectedImages.size;
     const selected = currentGalleryImages.filter((img) => selectedImages.has(img._key));
 
-    if (selectedCountEl) selectedCountEl.textContent = n;
-    if (n === 0) {
-      if (galleryBuySelection) galleryBuySelection.hidden = true;
-      if (cartFloat) cartFloat.hidden = true;
-      return;
-    }
-    if (galleryBuySelection) galleryBuySelection.hidden = false;
-    if (galleryBuyPricing) {
-      const { desc } = calcPrice(n);
-      galleryBuyPricing.innerHTML = `<strong>${desc}</strong>`;
-    }
-    if (galleryBuyThumbs) {
-      galleryBuyThumbs.innerHTML = selected
-        .map((img) => {
-          const thumb = img.thumbnailUrl || img.url;
-          const title = (img.title || img.altText || "Photo").replace(/"/g, "&quot;");
-          return `<div class="gallery__buy-thumb"><img src="${thumb}" alt="${title}" width="64" height="64"></div>`;
-        })
-        .join("");
-    }
+    // Update mobile cart count
+    if (mobileCartCount) mobileCartCount.textContent = n;
+    if (mobileCartPanelCount) mobileCartPanelCount.textContent = n;
 
-    if (cartFloat && cartList) {
-      cartFloat.hidden = false;
-      if (cartCountEl) cartCountEl.textContent = n;
-      const esc = (s) => (String(s ?? "")).replace(/"/g, "&quot;").replace(/</g, "&lt;");
-      const category = esc(currentCategoryName);
-        cartList.innerHTML = selected
-        .map((img) => {
-          const thumb = img.thumbnailUrl || img.url;
-          const title = esc(img.title || img.altText || "Photo");
-          const fileName = esc(img.fileName || "");
-          return `<li class="cart-float__item">
-            <img class="cart-float__thumb" src="${thumb}" alt="" width="48" height="48">
-            <div class="cart-float__meta">
-              <span class="cart-float__name">${title}</span>
-              ${fileName ? `<span class="cart-float__file">${fileName}</span>` : ""}
-              <span class="cart-float__cat">${category}</span>
-            </div>
-          </li>`;
-        })
-        .join("");
+    // Populate mobile cart panel list
+    if (mobileCartPanelList) {
+      if (n === 0) {
+        mobileCartPanelList.innerHTML = '<li style="text-align:center;color:#888;">No photos selected.</li>';
+      } else {
+        mobileCartPanelList.innerHTML = selected
+          .map((img) => {
+            const thumb = img.thumbnailUrl || img.url;
+            const title = img.title || img.altText || "Photo";
+            const fileName = img.fileName || "";
+            return `<li style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0;border-bottom:1px solid #eee;">
+              <img src="${thumb}" alt="${title}" style="width:48px;height:48px;border-radius:0.5rem;object-fit:cover;">
+              <div style="flex:1;">
+                <div style="font-weight:600;color:var(--heading, #222);font-size:1rem;">${title}</div>
+                ${fileName ? `<div style="font-size:0.9rem;color:#888;">${fileName}</div>` : ""}
+                <div style="font-size:0.85rem;color:#aaa;">${currentCategoryName}</div>
+              </div>
+            </li>`;
+          })
+          .join("");
+      }
     }
+    // Hide old selected photos block
+    if (galleryBuySelection) galleryBuySelection.hidden = true;
   };
+  // Toggle mobile cart panel
+  if (mobileCartBtn && mobileCartPanel) {
+    mobileCartBtn.addEventListener("click", () => {
+      mobileCartPanel.hidden = !mobileCartPanel.hidden;
+    });
+    // Hide panel when clicking outside
+    document.body.addEventListener("mousedown", (e) => {
+      if (!mobileCartPanel.hidden && !e.target.closest(".mobile-cart-panel") && !e.target.closest("#mobileCartBtn")) {
+        mobileCartPanel.hidden = true;
+      }
+    });
+  }
+
+  // Checkout button in mobile cart panel
+  if (mobileCartBuyBtn) {
+    mobileCartBuyBtn.addEventListener("click", () => {
+      const n = selectedImages.size;
+      if (n === 0) return;
+      const { total } = calcPrice(n);
+      const items = (currentGalleryImages || []).filter((img) => selectedImages.has(img._key));
+      mobileCartPanel.hidden = true;
+      showOrderConfirmation(`$${total}`, items, {
+        apiBase: API_BASE,
+        tenantId: TENANT_ID,
+        payment: cfg.payment,
+      });
+    });
+  }
+
+  // Clear button in mobile cart panel
+  if (mobileCartClearBtn) {
+    mobileCartClearBtn.addEventListener("click", () => {
+      selectedImages.clear();
+      qsa(".gallery__tile-check").forEach((c) => { c.checked = false; });
+      updateBuySelection();
+    });
+  }
 
   let galleryPath = []; // [{ id, name }] breadcrumb trail
 

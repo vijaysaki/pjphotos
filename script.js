@@ -21,11 +21,12 @@
     const submitBtn = document.getElementById("orderSubmitBtn");
     if (!orderConfirmation || !formState || !successState || !venmoAmount || !emailForm || !emailInput) return;
     const amountStr = amount && String(amount).trim() ? String(amount) : "";
+    orderConfirmation.dataset.pendingAmount = amountStr;
     formState.hidden = false;
     successState.hidden = true;
     venmoAmount.textContent = amountStr;
-    const successAmountEl = document.getElementById("orderSuccessAmount");
-    if (successAmountEl) successAmountEl.textContent = amountStr;
+    const successAmountWrap = document.getElementById("orderSuccessAmountWrap");
+    if (successAmountWrap) successAmountWrap.textContent = amountStr ? ` including the amount to pay (${amountStr})` : "";
     emailInput.value = "";
     orderConfirmation.hidden = false;
     orderConfirmation.setAttribute("aria-modal", "true");
@@ -66,11 +67,11 @@
           body: JSON.stringify(payload),
         });
         if (res.ok) {
-          const displayAmount = payload.amount || venmoAmount?.textContent || "";
+          const displayAmount = payload.amount || orderConfirmation.dataset.pendingAmount || venmoAmount?.textContent || "";
           formState.hidden = true;
           successState.hidden = false;
-          const successAmountEl = document.getElementById("orderSuccessAmount");
-          if (successAmountEl) successAmountEl.textContent = displayAmount;
+          const successAmountWrap = document.getElementById("orderSuccessAmountWrap");
+          if (successAmountWrap) successAmountWrap.textContent = displayAmount ? ` including the amount to pay (${displayAmount})` : "";
           if (typeof onSuccess === "function") onSuccess();
           const closeBtn = document.getElementById("orderCloseBtn");
           if (closeBtn) closeBtn.onclick = closeModal;

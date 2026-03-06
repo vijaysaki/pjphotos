@@ -12,6 +12,15 @@
   <script src="config.js"></script>
 </head>
 <body>
+    <!-- Cart icon: shows when photos selected, badge shows count -->
+    <a id="cartIconBtn" href="#/gallery" aria-label="View cart" class="cart-icon" hidden>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4" />
+        <circle cx="7" cy="21" r="1" fill="currentColor" />
+        <circle cx="17" cy="21" r="1" fill="currentColor" />
+      </svg>
+      <span id="cartIconCount" class="cart-icon__badge">0</span>
+    </a>
   <a class="skip-link" href="#main">Skip to content</a>
 
   <!-- HEADER — Flowbite-style nav -->
@@ -340,18 +349,6 @@
     </div>
   </footer>
 
-  <!-- FLOATING CART (shows only when photos are selected, discrete style) -->
-  <aside class="cart-float" id="cartFloat" hidden aria-label="Selected photos" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:50;background:rgba(30,41,59,0.85);border-radius:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.12);width:90vw;max-width:320px;padding:0.75rem 1rem;display:flex;flex-direction:column;gap:0.5rem;color:#fff;backdrop-filter:blur(4px);">
-    <div style="display:flex;align-items:center;justify-between;">
-      <h3 style="margin:0;font-size:1rem;font-weight:600;">Selected (<span id="cartCount">0</span>)</h3>
-      <div style="display:flex;gap:0.5rem;">
-        <button type="button" class="btn btn--primary" id="cartBuyBtn" style="font-size:0.95rem;padding:0.25rem 0.75rem;">Buy</button>
-        <button type="button" class="btn btn--ghost" id="cartClearBtn" aria-label="Clear selection" style="font-size:0.95rem;padding:0.25rem 0.75rem;">Clear</button>
-      </div>
-    </div>
-    <ul id="cartList" style="list-style:none;padding:0;margin:0;max-height:100px;overflow-y:auto;"></ul>
-  </aside>
-
   <!-- LIGHTBOX -->
   <div class="lightbox" id="lightbox" aria-hidden="true">
     <div class="lightbox__backdrop" data-close="1"></div>
@@ -377,7 +374,7 @@
       </div>
       <div id="orderConfirmationSuccess" hidden>
         <h2>Check your email</h2>
-        <p>We've sent you payment instructions. Pay via Venmo, Zelle, or Cash App and we'll email you a download link for your photos.</p>
+        <p>We've sent you payment instructions including the amount to pay (<strong id="orderSuccessAmount"></strong>). Pay via Venmo, Zelle, or Cash App and we'll email you a download link for your photos.</p>
         <button id="orderCloseBtn">Close</button>
       </div>
     </div>

@@ -10,7 +10,7 @@
   const TENANT_ID = cfg.tenantId || document.body.dataset.tenantId || "";
 
   // Show order modal: capture email, store purchase request, send pay-via email
-  function showOrderConfirmation(amount, items, { apiBase, tenantId, payment }) {
+  function showOrderConfirmation(amount, items, { apiBase, tenantId, payment, onSuccess }) {
     if (!items || items.length === 0) return;
     const orderConfirmation = document.getElementById("orderConfirmation");
     const formState = document.getElementById("orderConfirmationForm");
@@ -20,9 +20,12 @@
     const emailInput = document.getElementById("orderBuyerEmail");
     const submitBtn = document.getElementById("orderSubmitBtn");
     if (!orderConfirmation || !formState || !successState || !venmoAmount || !emailForm || !emailInput) return;
+    const amountStr = amount && String(amount).trim() ? String(amount) : "";
     formState.hidden = false;
     successState.hidden = true;
-    venmoAmount.textContent = amount;
+    venmoAmount.textContent = amountStr;
+    const successAmountEl = document.getElementById("orderSuccessAmount");
+    if (successAmountEl) successAmountEl.textContent = amountStr;
     emailInput.value = "";
     orderConfirmation.hidden = false;
     orderConfirmation.setAttribute("aria-modal", "true");
@@ -39,10 +42,16 @@
         submitBtn.disabled = true;
         submitBtn.textContent = "Sending…";
       }
+      const totalNum = parseFloat(String(amount).replace(/[^0-9.]/g, "")) || 0;
+      const amountStr = amount && String(amount).trim() ? String(amount) : "";
       const payload = {
         tenantId,
         buyerEmail: email,
-        amount: amount,
+        amount: amountStr,
+        total: totalNum,
+        totalDisplay: amountStr,
+        totalAmount: amountStr,
+        orderNote: amountStr ? `Please pay ${amountStr} to complete your purchase.` : "",
         items: items.map((img) => ({
           url: img.url || img.thumbnailUrl,
           fileName: img.fileName,
@@ -57,8 +66,12 @@
           body: JSON.stringify(payload),
         });
         if (res.ok) {
+          const displayAmount = payload.amount || venmoAmount?.textContent || "";
           formState.hidden = true;
           successState.hidden = false;
+          const successAmountEl = document.getElementById("orderSuccessAmount");
+          if (successAmountEl) successAmountEl.textContent = displayAmount;
+          if (typeof onSuccess === "function") onSuccess();
           const closeBtn = document.getElementById("orderCloseBtn");
           if (closeBtn) closeBtn.onclick = closeModal;
         } else {
@@ -214,21 +227,43 @@
     }
   });
 
-  const renderGalleryMegaMenu = (tree) => {
-    if (!Array.isArray(tree) || !tree.length) return "";
-    const renderFolder = (f, isSub = false) => {
+  let dropdownIdCounter = 0;
+  const renderGalleryDropdown = (tree) => {
+    const folders = Array.isArray(tree) ? tree : [];
+    const renderFolder = (f, depth = 0) => {
       const name = (f.name || "Folder").replace(/</g, "&lt;").replace(/"/g, "&quot;");
       const hasChildren = Array.isArray(f.children) && f.children.length > 0;
+      const href = `#/gallery/${f.id}`;
       if (hasChildren) {
-        const subItems = f.children.map((c) => renderFolder(c, true)).join("");
-        const cls = isSub ? "nav__megamenu__link" : "nav__megamenu__heading";
-        return `<div class="nav__megamenu__item nav__megamenu__item--has-sub"><a href="#/gallery/${f.id}" class="${cls}">${name}</a><div class="nav__megamenu__sub">${subItems}</div></div>`;
+        const subItems = f.children.map((c) => renderFolder(c, depth + 1)).join("");
+        const subId = "dd-" + (++dropdownIdCounter);
+        return `<li class="relative">
+          <button type="button" data-dropdown-toggle="${subId}" data-dropdown-placement="right-start" class="nav__flowbite-dropdown-btn" aria-expanded="false" aria-haspopup="true">
+            ${name}
+            <svg class="h-4 w-4 ms-auto rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/></svg>
+          </button>
+          <div id="${subId}" class="nav__flowbite-dropdown nav__flowbite-dropdown--nested hidden">
+            <ul class="p-2 text-sm font-medium">
+              ${subItems}
+            </ul>
+          </div>
+        </li>`;
       }
-      const cls = isSub ? "nav__megamenu__link" : "nav__megamenu__heading";
-      return `<div class="nav__megamenu__item"><a href="#/gallery/${f.id}" class="${cls}">${name}</a></div>`;
+      return `<li><a href="${href}" class="nav__flowbite-dropdown-link block">${name}</a></li>`;
     };
-    const items = tree.map((f) => renderFolder(f)).join("");
-    return `<div class="nav__megamenu"><div class="nav__megamenu__inner"><a href="#/gallery" class="nav__megamenu__all">View all galleries</a><div class="nav__megamenu__list">${items}</div></div></div>`;
+    const rootId = "dd-gallery";
+    const items = folders.map((f) => renderFolder(f)).join("");
+    return `
+      <button id="galleryDropdownButton" data-dropdown-toggle="${rootId}" type="button" class="nav__flowbite-trigger" aria-expanded="false" aria-haspopup="true">
+        Gallery
+        <svg class="w-4 h-4 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+      </button>
+      <div id="${rootId}" class="nav__flowbite-dropdown nav__flowbite-dropdown--root hidden">
+        <ul class="p-2 text-sm font-medium">
+          ${items}
+          <li><a href="#/gallery" class="nav__flowbite-dropdown-link nav__flowbite-dropdown-link--all block">View all galleries</a></li>
+        </ul>
+      </div>`;
   };
 
   const buildMenuHtml = (items, tree) => {
@@ -246,8 +281,7 @@
       .filter((i) => i.visible !== false)
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
       .map((item) => {
-        const l = (item.label || "").toLowerCase();
-        const isGallery = l.includes("gallery") || item.isGallery;
+        const l = (item.label || item.name || "").toLowerCase();
         let href = item.href || item.external_url || "#";
         if (!href.startsWith("#") && !href.startsWith("http")) href = "#" + href;
         if (item.page && (item.page.slug || item.page.full_path)) href = "#/" + (item.page.slug || item.page.full_path).replace(/^\//, "");
@@ -260,33 +294,131 @@
           else if (l.includes("about")) href = "#/about";
           else if (l.includes("contact")) href = "#/contact";
         }
+        const normHref = href.split("?")[0];
+        const isGallery = l.includes("gallery") || item.isGallery || normHref === "#/gallery" || normHref.startsWith("#/gallery/");
         const isCta = l.includes("book") || item.isCta;
         const slugMap = { home: "", services: "services", gallery: "gallery", "buy photos": "buy", about: "about", contact: "contact", "book now": "book" };
         const slug = slugMap[l] || l.replace(/\s+/g, "");
         const hashBase = hash.split("/")[0];
         const current = hashBase === slug || (hashBase === "" && slug === "");
+        const ariaCurrent = !isCta && current ? ' aria-current="page"' : "";
+
+        if (isGallery) {
+          dropdownIdCounter = 0;
+          const dropdownHtml = renderGalleryDropdown(tree || []);
+          return `<li class="relative">${dropdownHtml}</li>`;
+        }
         const linkClass = isCta
           ? "nav__cta btn btn--primary block py-2 px-3 rounded"
           : "nav__link block py-2 px-3 text-heading rounded hover:bg-neutral-tertiary md:hover:bg-transparent md:border-0 md:hover:text-fg-brand md:p-0";
-        const ariaCurrent = !isCta && current ? ' aria-current="page"' : "";
         return `<li><a class="${linkClass}" href="${href}"${ariaCurrent}>${item.label || "Link"}</a></li>`;
       })
       .join("");
   };
 
   const dynamicMenu = qs("#dynamicMenu");
+  let dropdownSetup = false;
+  const setupGalleryDropdown = () => {
+    if (dropdownSetup) return;
+    dropdownSetup = true;
+    const closeAllDropdowns = () => {
+      qsa(".nav__flowbite-dropdown", document).forEach((el) => el.classList.add("hidden"));
+      qsa("[data-dropdown-toggle]", dynamicMenu).forEach((b) => b.setAttribute("aria-expanded", "false"));
+    };
+    dynamicMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-dropdown-toggle]");
+      if (btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const id = btn.getAttribute("data-dropdown-toggle");
+        const target = id ? document.getElementById(id) : null;
+        if (target) {
+          const isOpen = !target.classList.contains("hidden");
+          qsa(".nav__flowbite-dropdown", document).forEach((el) => {
+            if (el === target) return;
+            if (target.contains(el)) return;
+            if (el.contains(target)) return;
+            el.classList.add("hidden");
+          });
+          qsa("[data-dropdown-toggle]", dynamicMenu).forEach((b) => {
+            const tid = b.getAttribute("data-dropdown-toggle");
+            const t = tid ? document.getElementById(tid) : null;
+            if (!t || t === target) return;
+            if (target.contains(t)) return;
+            if (t.contains(target)) return;
+            b.setAttribute("aria-expanded", "false");
+          });
+          if (!isOpen) {
+            target.classList.remove("hidden");
+            btn.setAttribute("aria-expanded", "true");
+            let parent = target.parentElement?.closest(".nav__flowbite-dropdown");
+            while (parent) {
+              parent.classList.remove("hidden");
+              parent = parent.parentElement?.closest(".nav__flowbite-dropdown");
+            }
+          } else {
+            target.classList.add("hidden");
+            btn.setAttribute("aria-expanded", "false");
+          }
+        }
+      }
+    }, true);
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest("#navbar-dropdown")) closeAllDropdowns();
+    });
+    dynamicMenu.addEventListener("click", (e) => {
+      if (e.target.closest(".nav__link, .nav__cta, .nav__flowbite-dropdown-link")) {
+        const menu = qs("#navbar-dropdown");
+        const toggle = qs(".nav__toggle");
+        if (menu && toggle) { menu.classList.remove("is-open"); toggle.setAttribute("aria-expanded", "false"); }
+        closeAllDropdowns();
+      }
+    });
+  };
+
   if (dynamicMenu) {
+    const applyMenu = (items, tree) => {
+      let list = items || [];
+      const defaultItems = [
+        { label: "Home", href: "#/" },
+        { label: "Services", href: "#/services" },
+        { label: "Gallery", href: "#/gallery", isGallery: true },
+        { label: "About", href: "#/about" },
+        { label: "Contact", href: "#/contact" },
+        { label: "Book Now", href: "#/book", isCta: true },
+      ];
+      if (!list.length) list = defaultItems;
+      const hasGallery = list.some((i) => /gallery/i.test(i.label || i.name || "") || (i.href || "").includes("/gallery"));
+      if (!hasGallery) {
+        const beforeBook = list.filter((i) => !/book\s*now/i.test(i.label || i.name || ""));
+        const afterBook = list.filter((i) => /book\s*now/i.test(i.label || i.name || ""));
+        list = [...beforeBook, { label: "Gallery", href: "#/gallery", isGallery: true }, ...afterBook];
+      }
+      list = list.map((i) => {
+        const h = (i.href || "").split("?")[0];
+        if (h === "#/gallery" || (h && h.startsWith("#/gallery"))) return { ...i, isGallery: true };
+        return i;
+      });
+      dynamicMenu.innerHTML = buildMenuHtml(list, tree || []);
+      setupGalleryDropdown();
+    };
     Promise.all([
-      fetch(api("/public/pages/menus")).then((r) => (r.ok ? r.json() : [])),
-      fetch(api("/public/galleries/tree")).then((r) => (r.ok ? r.json() : [])),
+      fetch(api("/public/pages/menus")).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      fetch(api("/public/galleries/tree")).then((r) => (r.ok ? r.json() : [])).catch(() => []),
     ])
       .then(([menus, tree]) => {
-        const headerMenu = Array.isArray(menus) && menus.length ? menus.find((m) => (m.slug || m.name || "").toLowerCase() === "header") || menus[0] : null;
+        let headerMenu = null;
+        if (Array.isArray(menus) && menus.length) {
+          headerMenu = menus.find((m) => (m.slug || m.name || "").toLowerCase() === "header") || menus[0];
+        } else if (menus && typeof menus === "object" && Array.isArray(menus.items)) {
+          headerMenu = { items: menus.items };
+        }
         const items = (headerMenu?.items || []).map((i) => {
+          const label = i.label || i.name || "";
           let href = i.external_url || "#";
           if (i.page && (i.page.slug || i.page.full_path)) href = "#/" + (i.page.slug || i.page.full_path).replace(/^\//, "");
-          else if (!i.external_url && i.label) {
-            const ll = (i.label || "").toLowerCase();
+          else if (!i.external_url && label) {
+            const ll = label.toLowerCase();
             if (ll.includes("book")) href = "#/book";
             else if (ll.includes("home")) href = "#/";
             else if (ll.includes("gallery")) href = "#/gallery";
@@ -295,27 +427,11 @@
             else if (ll.includes("about")) href = "#/about";
             else if (ll.includes("contact")) href = "#/contact";
           }
-          return { ...i, href };
+          return { ...i, label: label || i.label, href };
         });
-        dynamicMenu.innerHTML = buildMenuHtml(items, Array.isArray(tree) ? tree : []);
-        qsa(".nav__link, .nav__cta, .nav__megamenu__all, .nav__megamenu__heading, .nav__megamenu__link", dynamicMenu).forEach((a) =>
-          a.addEventListener("click", () => {
-            const menu = qs("#navbar-dropdown");
-            const toggle = qs(".nav__toggle");
-            if (menu && toggle) { menu.classList.remove("is-open"); toggle.setAttribute("aria-expanded", "false"); }
-            qsa(".nav__item--dropdown", dynamicMenu).forEach((d) => d.classList.remove("is-open"));
-          })
-        );
-        qsa(".nav__item--dropdown", dynamicMenu).forEach((item) => {
-          const trigger = qs(".nav__link--dropdown", item);
-          if (trigger) {
-            trigger.addEventListener("click", (e) => { e.preventDefault(); item.classList.toggle("is-open"); trigger.setAttribute("aria-expanded", item.classList.contains("is-open")); });
-            item.addEventListener("mouseenter", () => { if (window.innerWidth >= 900) item.classList.add("is-open"); });
-            item.addEventListener("mouseleave", () => { if (window.innerWidth >= 900) item.classList.remove("is-open"); });
-          }
-        });
+        applyMenu(items, Array.isArray(tree) ? tree : []);
       })
-      .catch(() => { dynamicMenu.innerHTML = buildMenuHtml(null, []); });
+      .catch(() => applyMenu(null, []));
   }
 
   // --- Load services from /public/services (cards + booking dropdown) ---
@@ -409,7 +525,46 @@
   let currentGalleryImageCount = 0;
   let currentGalleryImages = [];
   let currentCategoryName = "Gallery";
-  const selectedImages = new Set();
+  let currentFolderId = null;
+  const selectedItems = new Map();
+  const STORAGE_KEY = "pjphotos_selected";
+
+  const loadSelectedFromStorage = () => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      selectedItems.clear();
+      arr.forEach((item) => {
+        const { key, ...img } = item;
+        selectedItems.set(key, img);
+      });
+    } catch (e) {}
+  };
+
+  const saveSelectedToStorage = () => {
+    try {
+      const arr = Array.from(selectedItems.entries()).map(([key, img]) => ({
+        key,
+        url: img.url,
+        thumbnailUrl: img.thumbnailUrl,
+        fileName: img.fileName,
+        title: img.title,
+        altText: img.altText,
+        categoryName: img.categoryName,
+      }));
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    } catch (e) {}
+  };
+
+  const clearSelectedStorage = () => {
+    selectedItems.clear();
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch (e) {}
+  };
+
+  loadSelectedFromStorage();
 
   const calcPrice = (n) => {
     if (n <= 0) return { total: 0, desc: "" };
@@ -419,20 +574,18 @@
     return { total: 75, desc: "$75 flat" };
   };
 
-  const cartFloat = qs("#cartFloat");
-  const cartCountEl = qs("#cartCount");
-  const cartList = qs("#cartList");
-  const cartBuyBtn = qs("#cartBuyBtn");
-  const cartClearBtn = qs("#cartClearBtn");
+  const cartIconBtn = qs("#cartIconBtn");
+  const cartIconCount = qs("#cartIconCount");
 
   const updateBuySelection = () => {
-    const n = selectedImages.size;
-    const selected = currentGalleryImages.filter((img) => selectedImages.has(img._key));
+    const items = Array.from(selectedItems.values());
+    const n = items.length;
 
     if (selectedCountEl) selectedCountEl.textContent = n;
     if (n === 0) {
       if (galleryBuySelection) galleryBuySelection.hidden = true;
-      if (cartFloat) cartFloat.hidden = true;
+      if (cartIconBtn) cartIconBtn.hidden = true;
+      saveSelectedToStorage();
       return;
     }
     if (galleryBuySelection) galleryBuySelection.hidden = false;
@@ -441,7 +594,7 @@
       galleryBuyPricing.innerHTML = `<strong>${desc}</strong>`;
     }
     if (galleryBuyThumbs) {
-      galleryBuyThumbs.innerHTML = selected
+      galleryBuyThumbs.innerHTML = items
         .map((img) => {
           const thumb = img.thumbnailUrl || img.url;
           const title = (img.title || img.altText || "Photo").replace(/"/g, "&quot;");
@@ -450,28 +603,14 @@
         .join("");
     }
 
-    if (cartFloat && cartList) {
-      cartFloat.hidden = false;
-      if (cartCountEl) cartCountEl.textContent = n;
-      const esc = (s) => (String(s ?? "")).replace(/"/g, "&quot;").replace(/</g, "&lt;");
-      const category = esc(currentCategoryName);
-        cartList.innerHTML = selected
-        .map((img) => {
-          const thumb = img.thumbnailUrl || img.url;
-          const title = esc(img.title || img.altText || "Photo");
-          const fileName = esc(img.fileName || "");
-          return `<li class="cart-float__item">
-            <img class="cart-float__thumb" src="${thumb}" alt="" width="48" height="48">
-            <div class="cart-float__meta">
-              <span class="cart-float__name">${title}</span>
-              ${fileName ? `<span class="cart-float__file">${fileName}</span>` : ""}
-              <span class="cart-float__cat">${category}</span>
-            </div>
-          </li>`;
-        })
-        .join("");
+    if (cartIconBtn && cartIconCount) {
+      cartIconBtn.hidden = false;
+      cartIconCount.textContent = n;
     }
+    saveSelectedToStorage();
   };
+
+  if (selectedItems.size > 0) setTimeout(updateBuySelection, 0);
 
   let galleryPath = []; // [{ id, name }] breadcrumb trail
 
@@ -573,18 +712,21 @@
           if (galleryBuy) { galleryBuy.hidden = true; }
           return;
         }
-        currentGalleryImages = images.map((img, i) => ({ ...img, _key: `tile-${i}` }));
+        currentFolderId = folderId || "root";
+        currentGalleryImages = images.map((img, i) => ({ ...img, _key: `${currentFolderId}_${i}` }));
         currentCategoryName = current?.name || "Gallery";
+        const wasInSelectMode = galleryContent?.classList.contains("is-select-mode");
         const esc = (s) => (String(s ?? "")).replace(/"/g, "&quot;").replace(/</g, "&lt;");
         const imgEl = (img, uniqueIdx) => {
           const thumbUrl = img.thumbnailUrl || img.url;
           const fullUrl = img.url || img.thumbnailUrl;
           const title = img.title || img.altText || "Photo";
-          const imgId = img._key ?? `tile-${uniqueIdx}`;
+          const imgId = img._key ?? `${currentFolderId}_${uniqueIdx}`;
           const chkId = `chk-${uniqueIdx}`;
+          const isChecked = selectedItems.has(imgId);
           return `<div class="gallery__tile-wrap" data-image-id="${esc(imgId)}">
             <button class="tile gallery__img-wrap" data-cat="gallery" data-image-id="${esc(imgId)}" data-title="${esc(title)}" data-url="${esc(fullUrl)}" type="button" aria-label="Open photo: ${esc(title)}"><img class="h-auto max-w-full rounded-base" src="${esc(thumbUrl || fullUrl)}" alt="${esc(title)}"></button>
-            <div class="gallery__tile-select"><input type="checkbox" class="gallery__tile-check" id="${esc(chkId)}"><span class="gallery__tile-select-area"></span></div>
+            <div class="gallery__tile-select"><input type="checkbox" class="gallery__tile-check" id="${esc(chkId)}"${isChecked ? " checked" : ""}><span class="gallery__tile-select-area"></span></div>
           </div>`;
         };
         const numCols = Math.min(4, currentGalleryImages.length);
@@ -609,9 +751,13 @@
         if (galleryBuy && buyWholeGalleryBtn) {
           galleryBuy.hidden = false;
           currentGalleryImageCount = currentGalleryImages.length;
-          galleryBuySelection.hidden = true;
-          galleryContent?.classList.remove("is-select-mode");
-          selectedImages.clear();
+          galleryBuySelection.hidden = selectedItems.size === 0;
+          if (wasInSelectMode) {
+            galleryContent?.classList.add("is-select-mode");
+            if (selectPhotosBtn) selectPhotosBtn.textContent = "Cancel selection";
+          } else {
+            galleryContent?.classList.remove("is-select-mode");
+          }
           updateBuySelection();
           const n = currentGalleryImages.length;
           const { desc } = calcPrice(n);
@@ -726,6 +872,11 @@
         apiBase: API_BASE,
         tenantId: TENANT_ID,
         payment: cfg.payment,
+        onSuccess: () => {
+          clearSelectedStorage();
+          updateBuySelection();
+          qsa(".gallery__tile-check").forEach((c) => { c.checked = false; });
+        },
       });
     });
   }
@@ -735,7 +886,7 @@
       const inSelect = galleryContent?.classList.contains("is-select-mode");
       selectPhotosBtn.textContent = inSelect ? "Cancel selection" : "Select photos";
       if (!inSelect) {
-        selectedImages.clear();
+        selectedItems.clear();
         qsa(".gallery__tile-check").forEach((c) => { c.checked = false; });
         updateBuySelection();
       }
@@ -743,37 +894,47 @@
   }
   if (buySelectedBtn) {
     buySelectedBtn.addEventListener("click", () => {
-      const n = selectedImages.size;
+      const items = Array.from(selectedItems.values());
+      const n = items.length;
       if (n === 0) return;
       const { total } = calcPrice(n);
-      const items = (currentGalleryImages || []).filter((img) => selectedImages.has(img._key));
       showOrderConfirmation(`$${total}`, items, {
         apiBase: API_BASE,
         tenantId: TENANT_ID,
         payment: cfg.payment,
+        onSuccess: () => {
+          clearSelectedStorage();
+          updateBuySelection();
+          qsa(".gallery__tile-check").forEach((c) => { c.checked = false; });
+        },
       });
     });
   }
   if (clearSelectionBtn) {
     clearSelectionBtn.addEventListener("click", () => {
-      selectedImages.clear();
+      selectedItems.clear();
       qsa(".gallery__tile-check").forEach((c) => { c.checked = false; });
       updateBuySelection();
     });
   }
-  if (cartBuyBtn) {
-    cartBuyBtn.addEventListener("click", () => buySelectedBtn?.click());
-  }
-  if (cartClearBtn) {
-    cartClearBtn.addEventListener("click", () => clearSelectionBtn?.click());
+  if (cartIconBtn) {
+    cartIconBtn.addEventListener("click", (e) => {
+      const h = (window.location.hash || "").replace(/^#\/?/, "");
+      if (selectedItems.size > 0 && (h === "gallery" || h.startsWith("gallery/"))) {
+        e.preventDefault();
+        galleryContent?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
   }
   document.body.addEventListener("change", (e) => {
     const chk = e.target.closest(".gallery__tile-check");
     if (chk) {
-      const id = chk.closest(".gallery__tile-wrap")?.getAttribute("data-image-id");
+      const wrap = chk.closest(".gallery__tile-wrap");
+      const id = wrap?.getAttribute("data-image-id");
       if (id) {
-        if (chk.checked) selectedImages.add(id);
-        else selectedImages.delete(id);
+        const img = (currentGalleryImages || []).find((i) => i._key === id);
+        if (chk.checked && img) selectedItems.set(id, { ...img, categoryName: currentCategoryName });
+        else selectedItems.delete(id);
         updateBuySelection();
       }
     }
@@ -789,8 +950,9 @@
     chk.checked = !chk.checked;
     const id = wrap.getAttribute("data-image-id");
     if (id) {
-      if (chk.checked) selectedImages.add(id);
-      else selectedImages.delete(id);
+      const img = (currentGalleryImages || []).find((i) => i._key === id);
+      if (chk.checked && img) selectedItems.set(id, { ...img, categoryName: currentCategoryName });
+      else selectedItems.delete(id);
       updateBuySelection();
     }
   });
